@@ -35,6 +35,50 @@
             display: flex; 
             overflow: hidden; 
         }
+.card-integrado {
+    border: 2px solid #0284c7;
+    border-radius: 14px;
+    background: #f0f9ff;
+    box-shadow: 0 4px 10px rgba(2, 132, 199, 0.15);
+}
+
+/* Garante que as células acompanhem o arredondamento */
+.card-integrado td:first-child {
+    border-top-left-radius: 14px;
+    border-bottom-left-radius: 14px;
+}
+
+.card-integrado td:last-child {
+    border-top-right-radius: 14px;
+    border-bottom-right-radius: 14px;
+}
+
+/* Espaçamento entre os cards integrados */
+tbody tr.card-integrado {
+    margin-bottom: 10px;
+}
+
+tr.card-integrado:hover {
+    background: #f0f9ff;
+}
+
+        
+        .badge-tipo {
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 2px 8px;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: white;
+            border-bottom-right-radius: 8px;
+            letter-spacing: 0.5px;
+            z-index: 10;
+        }
+        
+        .bg-centralizada { background: #64748b; } /* Cinza */
+        .bg-integrada { background: #0284c7; }   /* Azul */
 
         /* --- LOGIN --- */
         #login-screen {
@@ -497,6 +541,20 @@
                         <label>Filtro:</label>
                         <input type="date" id="date-start" class="date-input" onchange="filter()">
                         <input type="date" id="date-end" class="date-input" onchange="filter()">
+<button onclick="clearDateFilters()" style="
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+">
+    Limpar
+</button>
+
+
+                        
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -640,20 +698,31 @@ function filterByDate(dateStr) {
 
             db.forEach((r, i) => {
                 const statusStr = (r[10] || "").toUpperCase();
+                const tipoEvento = (r[11] || "").trim(); // Coluna 11 (L)
                 const isOk = statusStr.includes('OK') || statusStr.includes('CONFIRMADO');
+                const isIntegrado = tipoEvento.toLowerCase() === 'integrada';
 
                 const tr = document.createElement('tr');
                 tr.onclick = () => openModal(i);
-                tr.setAttribute('data-event-date', r[2]); 
-                tr.setAttribute('title', 'Clique no evento para mostrar os detalhes');
+                tr.setAttribute('data-event-date', r[2]);
+                
+                // Se for Integrado, aplica o fundo azul claro
+                if (isIntegrado) tr.classList.add('card-integrado');
+
+                // Define a classe da faixa superior esquerda
+                const badgeClass = isIntegrado ? 'bg-integrada' : 'bg-centralizada';
                 
                 tr.innerHTML = `
                     <td style="font-weight:700; color:var(--accent)">#${r[1]}</td>
                     <td style="color:var(--text-muted)">${r[2]}</td>
-                    <td>
-    <div style="font-weight:700; color:var(--primary);">
+                    <td style="position:relative;">
+    <span class="badge-tipo ${badgeClass}">
+        ${isIntegrado ? 'Integrado' : 'Centralizado'}
+    </span>
+    <div style="font-weight:700; color:var(--primary); margin-top:12px;">
         ${r[3]}
     </div>
+
     <div style="
         margin-top:4px;
         font-size:11px;
@@ -876,6 +945,12 @@ function filterByDate(dateStr) {
             document.getElementById('k-integ').innerText = counts.integ;
             document.getElementById('k-parti').innerText = counts.parti;
         }
+        function clearDateFilters() {
+    document.getElementById('date-start').value = '';
+    document.getElementById('date-end').value = '';
+    filter();
+}
+
     </script>
 </body>
 </html>
