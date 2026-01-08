@@ -7,6 +7,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         :root {
             --primary: #001a35;
@@ -676,6 +679,19 @@ td .badge-aio {
 ">
     Limpar
 </button>
+<button onclick="exportarPDF()" style="
+    background: var(--accent);
+    border: none;
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 12px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+">
+    <i class="fas fa-file-export"></i> Exportar
+</button>
 
 
                         
@@ -828,6 +844,7 @@ function filterByDate(dateStr) {
                 const isIntegrado = tipoEvento.toLowerCase() === 'integrada';
 
                 const tr = document.createElement('tr');
+                tr.dataset.idx = i;
                 tr.onclick = () => openModal(i);
                 tr.setAttribute('data-event-date', r[2]);
                 
@@ -1113,6 +1130,189 @@ function filterByApoio(tipo) {
     }
 
     filter();
+}
+
+function exportarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("l", "mm", "a4");
+    const titulo = "Eventos - Carnaval 2026";
+    const dataGeracao = new Date().toLocaleDateString("pt-BR");
+
+    /* ===== Cabeçalho ===== */
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text(titulo, 14, 15);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Gerado em: ${dataGeracao}`, 14, 22);
+
+    /* ===== Linhas visíveis da tabela ===== */
+    const linhasVisiveis = Array.from(document.querySelectorAll("#tbody tr"))
+        .filter(tr => tr.style.display !== "none");
+
+    if (linhasVisiveis.length === 0) {
+        alert("Nenhum evento para exportar.");
+        return;
+    }
+
+    /* ===== Montagem da tabela principal ===== */
+    const dadosTabela = [];
+    const resumoDatas = {};
+    const linkMap = [];
+    linhasVisiveis.forEach(tr => {
+        const idx = tr.dataset.idx;
+        const r = db[idx];
+    console.log({
+  M: r[12],
+  N: r[13],
+  O: r[14],
+  P: r[15],
+  Q: r[16]
+});
+     const endereco = r[6] || "";
+    let zona = "";
+
+    if (endereco.toLowerCase().includes("zona")) {
+        zona = endereco.match(/zona\s+\w+/i)?.[0] || "";
+    }
+
+    dadosTabela.push([
+        r[1] || "",
+        r[2] || "",
+        r[3] || "",
+        zona
+            ? `${endereco.replace(zona, "")}\nZona: ${zona.toUpperCase()}`
+            : endereco,
+        r[8] || "",
+        r[9] || "",
+        r[7] || "",
+        "Abrir"
+    ]);
+
+    if (r[15] && r[15].toLowerCase().includes("http")) {
+        linkMap.push({
+            row: dadosTabela.length - 1,
+            url: r[15]
+        });
+    }
+
+    if (r[2]) {
+        resumoDatas[r[2]] = (resumoDatas[r[2]] || 0) + 1;
+    }
+});
+    doc.autoTable({
+        startY: 28,
+        head: [[
+            "Data do Protocolo",
+            "Data do Evento",
+            "Evento",
+            "Endereço / Zona",
+            "Responsável",
+            "Contato",
+            "Público Estimado",
+            "Ofício de Solicitação"
+        ]],
+        body: dadosTabela,
+        styles: {
+            fontSize: 8,
+            cellPadding: 2,
+            valign: "top"
+        },
+        headStyles: {
+            fillColor: [25, 52, 84],
+            textColor: 255
+        },
+        didParseCell(data) {
+    // Coluna "Evento"
+    if (data.column.index === 2 && data.section === 'body') {
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.fontSize = 9;
+        data.cell.styles.textColor = [0, 26, 53]; // azul escuro
+    }
+}
+
+    });
+const table = doc.lastAutoTable;
+
+linkMap.forEach(l => {
+    const cell = table.body[l.row].cells[7]; // coluna "Ofício"
+    doc.link(
+        cell.x,
+        cell.y,
+        cell.width,
+        cell.height,
+        { url: l.url }
+    );
+});
+
+
+    /* ===== Calendário resumo ===== */
+    /* ===== RESUMO POR DATA DO EVENTO ===== */
+
+//* ===== RESUMO POR DATA DO EVENTO ===== */
+
+const dadosResumo = Object.entries(resumoDatas)
+    .sort((a, b) => {
+        const [da, ma, ya] = a[0].split('/');
+        const [db, mb, yb] = b[0].split('/');
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+    })
+    .map(([data, qtd]) => [data, qtd]);
+
+const totalEventos = dadosResumo.reduce((s, r) => s + r[1], 0);
+dadosResumo.push(["TOTAL", totalEventos]);
+
+// Y base logo após a tabela principal
+let yBase = doc.lastAutoTable.finalY + 10;
+
+// Título (bem colado na tabela)
+doc.setFont("helvetica", "bold");
+doc.setFontSize(11);
+doc.text("Resumo por data do evento", 14, yBase);
+
+// Tabela começa logo abaixo do título
+doc.autoTable({
+    startY: yBase + 3,
+    head: [["Data do Evento", "Quantidade"]],
+    body: dadosResumo,
+    styles: {
+        fontSize: 9,
+        halign: "center"
+    },
+    headStyles: {
+        fillColor: [197, 160, 89],
+        textColor: [0, 0, 0]
+    },
+    didParseCell(data) {
+        if (data.row.index === dadosResumo.length - 1) {
+            data.cell.styles.fontStyle = "bold";
+        }
+    }
+});
+
+    /* ===== Rodapé ===== */
+    const totalPaginas = doc.getNumberOfPages();
+
+    for (let i = 1; i <= totalPaginas; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text(
+            "Polícia Militar do Amazonas • Assessoria Integrada de Operações",
+            doc.internal.pageSize.getWidth() / 2,
+            doc.internal.pageSize.getHeight() - 10,
+            { align: "center" }
+        );
+        doc.text(
+            `Página ${i} de ${totalPaginas}`,
+            doc.internal.pageSize.getWidth() - 14,
+            doc.internal.pageSize.getHeight() - 10,
+            { align: "right" }
+        );
+    }
+
+    doc.save("Eventos_Carnaval_2026.pdf");
 }
     </script>
 </body>
