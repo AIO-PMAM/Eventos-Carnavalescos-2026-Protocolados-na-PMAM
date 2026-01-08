@@ -269,6 +269,20 @@ tr.card-integrado:hover {
             border-left: 5px solid #e2e8f0;
             transition: transform 0.3s;
         }
+        .kpi-card.active-filter {
+    border-left-color: var(--accent);
+    box-shadow: 0 6px 18px rgba(197, 160, 89, 0.35);
+    background: linear-gradient(180deg, #fffdf7, #ffffff);
+}
+
+.kpi-card.active-filter small {
+    color: var(--accent);
+}
+
+.kpi-card.active-filter h2 {
+    color: var(--accent);
+}
+
         .kpi-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-md); }
         .kpi-card.highlight { border-left-color: var(--accent); }
         .kpi-card small { color: var(--text-muted); font-weight: 700; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
@@ -628,15 +642,16 @@ td .badge-aio {
 
             <div class="kpi-grid">
                 <div class="kpi-card highlight"><small>Total de Eventos</small><h2 id="k-total">0</h2></div>
-                <div class="kpi-card" onclick="filterByApoio('integrado')" style="cursor:pointer">
+                <div class="kpi-card" id="kpi-integrado" onclick="filterByApoio('integrado')" style="cursor:pointer">
     <small>Apoio Prefeitura/Estado</small>
     <h2 id="k-integ">0</h2>
 </div>
 
-<div class="kpi-card" onclick="filterByApoio('particular')" style="cursor:pointer">
+<div class="kpi-card" id="kpi-particular" onclick="filterByApoio('particular')" style="cursor:pointer">
     <small>Particular</small>
     <h2 id="k-parti">0</h2>
 </div>
+
 
             </div>
 
@@ -1083,9 +1098,22 @@ if (filtroApoioAtivo) {
 function filterByApoio(tipo) {
     // alterna o filtro
     filtroApoioAtivo = (filtroApoioAtivo === tipo) ? null : tipo;
+
+    // remove destaque de todos
+    document.getElementById('kpi-integrado').classList.remove('active-filter');
+    document.getElementById('kpi-particular').classList.remove('active-filter');
+
+    // aplica destaque no ativo
+    if (filtroApoioAtivo === 'integrado') {
+        document.getElementById('kpi-integrado').classList.add('active-filter');
+    }
+
+    if (filtroApoioAtivo === 'particular') {
+        document.getElementById('kpi-particular').classList.add('active-filter');
+    }
+
     filter();
 }
-
     </script>
 </body>
 </html>
