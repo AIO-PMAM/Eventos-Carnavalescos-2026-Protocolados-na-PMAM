@@ -80,6 +80,74 @@ tr.card-integrado:hover {
         .bg-centralizada { background: #64748b; } /* Cinza */
         .bg-integrada { background: #0284c7; }   /* Azul */
 
+
+        .badge-aio {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    max-width: 90%;
+    padding: 4px 10px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #1e293b;
+    background: #e0f2fe;
+    border-top-right-radius: 8px;
+    letter-spacing: 0.4px;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge-aio button {
+    background: #0284c7;
+    border: none;
+    color: white;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 3px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.badge-aio button:hover {
+    background: #0369a1;
+}
+.badge-container {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+}
+
+.badge-tipo {
+    position: static;
+    padding: 3px 10px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: white;
+    border-radius: 8px;
+    letter-spacing: 0.5px;
+}
+
+.badge-aio {
+    position: static;
+    padding: 3px 10px;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #1e293b;
+    background: #e0f2fe;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
         /* --- LOGIN --- */
         #login-screen {
             position: fixed; inset: 0; z-index: 9999;
@@ -343,7 +411,12 @@ tr.card-integrado:hover {
         .day-number { font-weight: 600; }
 
         .table-responsive { overflow-x: auto; width: 100%; }
-        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+}
+
         th { 
             text-align: left; 
             padding: 20px 30px; 
@@ -474,6 +547,19 @@ tr.card-integrado:hover {
             .date-filter-group { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
             .date-filter-group label { grid-column: span 2; }
         }
+        /* Agrupa Integrado/Centralizado + Plano AIO lado a lado */
+td span.badge-tipo {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 6px;
+}
+
+td .badge-aio {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-top: 0;
+}
+
     </style>
 </head>
 <body>
@@ -712,6 +798,31 @@ function filterByDate(dateStr) {
                 // Define a classe da faixa superior esquerda
                 const badgeClass = isIntegrado ? 'bg-integrada' : 'bg-centralizada';
                 
+                const aioRaw = (r[19] || "").trim();
+let aioHTML = '';
+
+if (aioRaw) {
+    if (aioRaw.toLowerCase().includes('http')) {
+        aioHTML = `
+            <div class="badge-aio">
+                Plano AIO
+                <button onclick="event.stopPropagation(); window.open('${aioRaw}', '_blank')">
+                    Abrir
+                </button>
+            </div>
+        `;
+    } else {
+        aioHTML = `
+            <div class="badge-aio">
+                ${aioRaw}
+            </div>
+        `;
+    }
+}
+
+
+
+
                 tr.innerHTML = `
                     <td style="font-weight:700; color:var(--accent)">#${r[1]}</td>
                     <td style="color:var(--text-muted)">${r[2]}</td>
@@ -720,8 +831,10 @@ function filterByDate(dateStr) {
         ${isIntegrado ? 'Integrado' : 'Centralizado'}
     </span>
     <div style="font-weight:700; color:var(--primary); margin-top:12px;">
-        ${r[3]}
-    </div>
+    ${r[3]}
+</div>
+${aioHTML}
+
 
     <div style="
         margin-top:4px;
@@ -812,9 +925,6 @@ function filterByDate(dateStr) {
 
             document.querySelectorAll('#tbody tr').forEach((tr) => {
                 const rowText = tr.innerText.toLowerCase();
-                const dateAttr = tr.getAttribute('data-event-date');
-                if(!dateAttr) return;
-
                 const [day, month, year] = dateAttr.split('/');
                 const eventDate = new Date(year, month - 1, day);
                 const apoioText = tr.cells[4] ? tr.cells[4].innerText.toUpperCase() : "";
@@ -909,8 +1019,6 @@ function filterByDate(dateStr) {
             `;
             document.getElementById('modal').style.display = 'flex';
         }
-
-        function closeModal() { document.getElementById('modal').style.display = 'none'; }
 
         function filter() {
             const searchText = document.getElementById('search').value.toLowerCase();
