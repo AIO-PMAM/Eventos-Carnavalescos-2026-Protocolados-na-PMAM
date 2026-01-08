@@ -628,8 +628,16 @@ td .badge-aio {
 
             <div class="kpi-grid">
                 <div class="kpi-card highlight"><small>Total de Eventos</small><h2 id="k-total">0</h2></div>
-                <div class="kpi-card"><small>Apoio Prefeitura/Estado</small><h2 id="k-integ">0</h2></div>
-                <div class="kpi-card"><small>Particular</small><h2 id="k-parti">0</h2></div>
+                <div class="kpi-card" onclick="filterByApoio('integrado')" style="cursor:pointer">
+    <small>Apoio Prefeitura/Estado</small>
+    <h2 id="k-integ">0</h2>
+</div>
+
+<div class="kpi-card" onclick="filterByApoio('particular')" style="cursor:pointer">
+    <small>Particular</small>
+    <h2 id="k-parti">0</h2>
+</div>
+
             </div>
 
             <div class="panel">
@@ -713,6 +721,7 @@ td .badge-aio {
 
         let db = [];
         let usuariosPermitidos = [];
+        let filtroApoioAtivo = null;
 
         // Carrega usuários assim que a página abre
         window.onload = () => {
@@ -1038,6 +1047,19 @@ ${aioHTML}
                 let match = rowText.includes(searchText);
                 if (startDate && eventDate < startDate) match = false;
                 if (endDate && eventDate > endDate) match = false;
+if (filtroApoioAtivo) {
+    if (filtroApoioAtivo === 'integrado') {
+        if (!(apoioText.includes('ESTADO') || apoioText.includes('PREFEITURA'))) {
+            match = false;
+        }
+    }
+
+    if (filtroApoioAtivo === 'particular') {
+        if (apoioText.includes('ESTADO') || apoioText.includes('PREFEITURA')) {
+            match = false;
+        }
+    }
+}
 
                 if (match) {
                     tr.style.display = '';
@@ -1056,6 +1078,11 @@ ${aioHTML}
         function clearDateFilters() {
     document.getElementById('date-start').value = '';
     document.getElementById('date-end').value = '';
+    filter();
+}
+function filterByApoio(tipo) {
+    // alterna o filtro
+    filtroApoioAtivo = (filtroApoioAtivo === tipo) ? null : tipo;
     filter();
 }
 
