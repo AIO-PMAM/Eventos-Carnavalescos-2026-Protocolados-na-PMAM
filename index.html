@@ -559,6 +559,21 @@ td .badge-aio {
     vertical-align: middle;
     margin-top: 0;
 }
+.envolvido {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+}
+
+.envolvido-pendente {
+    color: var(--accent); /* amarelo */
+}
+
+.envolvido-ok {
+    color: var(--success); /* verde */
+}
 
     </style>
 </head>
@@ -820,6 +835,34 @@ if (aioRaw) {
     }
 }
 
+const envolvidosRaw = (r[12] || "").toUpperCase();
+
+const linksDesdobramento = {
+    CPM: (r[16] || "").toLowerCase(),
+    CPAMB: (r[17] || "").toLowerCase(),
+    CPE: (r[18] || "").toLowerCase()
+};
+
+let envolvidosHTML = '';
+
+if (envolvidosRaw) {
+    envolvidosHTML = envolvidosRaw
+        .split(',')
+        .map(ev => {
+            const envolvido = ev.trim();
+
+            const temDesdobramento =
+                linksDesdobramento[envolvido] &&
+                linksDesdobramento[envolvido].includes('http');
+
+            return `<span class="envolvido ${temDesdobramento ? 'envolvido-ok' : 'envolvido-pendente'}">
+                ${envolvido}
+            </span>`;
+        })
+        .join(' ');
+} else {
+    envolvidosHTML = `<span class="envolvido envolvido-pendente">Sem envolvidos</span>`;
+}
 
 
 
@@ -834,16 +877,10 @@ if (aioRaw) {
     ${r[3]}
 </div>
 
-<div style="
-    margin-top:4px;
-    font-size:11px;
-    font-weight:800;
-    color:var(--accent);
-    text-transform:uppercase;
-    letter-spacing:0.5px;
-">
-    ${r[12] || 'Sem envolvidos'}
+<div style="margin-top:4px;">
+    ${envolvidosHTML}
 </div>
+
 
 ${aioHTML}
 
