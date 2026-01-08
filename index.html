@@ -911,43 +911,6 @@ ${aioHTML}
                 container.appendChild(monthDiv);
             });
         }
-
-        function filter() {
-            const searchText = document.getElementById('search').value.toLowerCase();
-            const startStr = document.getElementById('date-start').value;
-            const endStr = document.getElementById('date-end').value;
-            
-            // Ajuste para considerar o timezone local no filtro de data
-            const startDate = startStr ? new Date(startStr + "T00:00:00") : null;
-            const endDate = endStr ? new Date(endStr + "T23:59:59") : null;
-
-            let counts = { total: 0, integ: 0, parti: 0 };
-
-            document.querySelectorAll('#tbody tr').forEach((tr) => {
-                const rowText = tr.innerText.toLowerCase();
-                const [day, month, year] = dateAttr.split('/');
-                const eventDate = new Date(year, month - 1, day);
-                const apoioText = tr.cells[4] ? tr.cells[4].innerText.toUpperCase() : "";
-
-                let match = rowText.includes(searchText);
-                if (startDate && eventDate < startDate) match = false;
-                if (endDate && eventDate > endDate) match = false;
-
-                if (match) {
-                    tr.style.display = '';
-                    counts.total++;
-                    if (apoioText.includes('ESTADO') || apoioText.includes('PREFEITURA')) counts.integ++;
-                    else counts.parti++;
-                } else {
-                    tr.style.display = 'none';
-                }
-            });
-
-            document.getElementById('k-total').innerText = counts.total;
-            document.getElementById('k-integ').innerText = counts.integ;
-            document.getElementById('k-parti').innerText = counts.parti;
-        }
-
         function openModal(idx) {
             const ev = db[idx];
             const sigedRaw = (ev[15] || "").trim();
