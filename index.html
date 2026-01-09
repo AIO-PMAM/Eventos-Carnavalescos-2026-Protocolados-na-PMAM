@@ -854,26 +854,28 @@ function filterByDate(dateStr) {
                 // Define a classe da faixa superior esquerda
                 const badgeClass = isIntegrado ? 'bg-integrada' : 'bg-centralizada';
                 
-                const aioRaw = (r[19] || "").trim();
+               const aioRaw = (r[19] || "").trim();
 let aioHTML = '';
 
 if (aioRaw) {
-    if (aioRaw.toLowerCase().includes('http')) {
-        aioHTML = `
-            <div class="badge-aio">
-                Plano AIO
-                <button onclick="event.stopPropagation(); window.open('${aioRaw}', '_blank')">
+    const temLink = aioRaw.toLowerCase().includes('http');
+    const link = temLink ? aioRaw.match(/https?:\/\/\S+/)?.[0] : null;
+    const texto = aioRaw.replace(/https?:\/\/\S+/, '').trim();
+
+    aioHTML = `
+        <div class="badge-aio">
+            ${texto || 'Plano AIO'}
+            ${link ? `
+                <a href="${encodeURI(link)}"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   onclick="event.stopPropagation()"
+                   style="background:#0284c7; color:white; padding:3px 8px; border-radius:6px; font-size:9px; font-weight:800; text-decoration:none;">
                     Abrir
-                </button>
-            </div>
-        `;
-    } else {
-        aioHTML = `
-            <div class="badge-aio">
-                ${aioRaw}
-            </div>
-        `;
-    }
+                </a>
+            ` : ''}
+        </div>
+    `;
 }
 
 const envolvidosRaw = (r[12] || "").toUpperCase();
@@ -991,7 +993,12 @@ ${aioHTML}
         }
         function openModal(idx) {
             const ev = db[idx];
-            const sigedRaw = (ev[15] || "").trim();
+            let sigedRaw = (ev[15] || "").trim().replace(/\s+/g, '');
+
+if (sigedRaw && !sigedRaw.startsWith('http')) {
+    sigedRaw = 'https://' + sigedRaw;
+}
+
             let sigedContent = '';
             if (sigedRaw.toLowerCase().includes('http')) {
                 sigedContent = `
@@ -1138,14 +1145,38 @@ function exportarPDF() {
     const titulo = "Eventos - Carnaval 2026";
     const dataGeracao = new Date().toLocaleDateString("pt-BR");
 
-    /* ===== Cabeçalho ===== */
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text(titulo, 14, 15);
+/* ===== Cabeçalho Institucional ===== */
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Gerado em: ${dataGeracao}`, 14, 22);
+// Logo AIO (menor e proporcional)
+const logoAIO = new Image();
+logoAIO.src = "logo_aio.png";
+
+// largura e altura iguais para não distorcer
+doc.addImage(logoAIO, "PNG", 14, 11, 14, 0);
+
+// PMAM (menor)
+doc.setFont("helvetica", "normal");
+doc.setFontSize(9);
+doc.text("Polícia Militar do Amazonas - PMAM", 34, 14);
+
+// AIO (um pouco menor, mas ainda em destaque)
+doc.setFont("helvetica", "bold");
+doc.setFontSize(14);
+doc.text("Assessoria de Integração Operacional – AIO", 34, 20);
+
+// Subtítulo
+doc.setFontSize(11);
+doc.text("Eventos Carnavalescos Protocolados na PMAM – Carnaval 2026", 34, 26);
+
+// Data de geração
+doc.setFont("helvetica", "normal");
+doc.setFontSize(9);
+doc.text(
+    `Gerado em: ${new Date().toLocaleDateString("pt-BR")}`,
+    280,
+    14,
+    { align: "right" }
+);
 
     /* ===== Linhas visíveis da tabela ===== */
     const linhasVisiveis = Array.from(document.querySelectorAll("#tbody tr"))
@@ -1178,41 +1209,50 @@ function exportarPDF() {
     }
 
     dadosTabela.push([
-        r[1] || "",
-        r[2] || "",
-        r[3] || "",
-        zona
-            ? `${endereco.replace(zona, "")}\nZona: ${zona.toUpperCase()}`
-            : endereco,
-        r[8] || "",
-        r[9] || "",
-        r[7] || "",
-        "Abrir"
-    ]);
+    r[1] || "",
+    r[2] || "",
+    `${r[4] || ''} às ${r[5] || ''}`,
+    r[3] || "",
+    zona
+        ? `${endereco.replace(zona, "")}\nZona: ${zona.toUpperCase()}`
+        : endereco,
+    r[8] || "",
+    r[9] || "",
+    r[7] || "",
+    ""
+]);
 
-    if (r[15] && r[15].toLowerCase().includes("http")) {
-        linkMap.push({
-            row: dadosTabela.length - 1,
-            url: r[15]
-        });
-    }
+    let linkOficio = (r[15] || "").trim().replace(/\s+/g, '');
+
+if (linkOficio && !linkOficio.startsWith('http')) {
+    linkOficio = 'https://' + linkOficio;
+}
+
+if (linkOficio.toLowerCase().startsWith("http")) {
+    linkMap.push({
+        row: dadosTabela.length - 1,
+        url: encodeURI(linkOficio)
+    });
+}
+
 
     if (r[2]) {
         resumoDatas[r[2]] = (resumoDatas[r[2]] || 0) + 1;
     }
 });
     doc.autoTable({
-        startY: 28,
+        startY: 40,
         head: [[
-            "Data do Protocolo",
-            "Data do Evento",
-            "Evento",
-            "Endereço / Zona",
-            "Responsável",
-            "Contato",
-            "Público Estimado",
-            "Ofício de Solicitação"
-        ]],
+    "Data do Protocolo",
+    "Data do Evento",
+    "Horário",
+    "Evento",
+    "Endereço / Zona",
+    "Responsável",
+    "Contato",
+    "Público Estimado",
+    "Ofício de Solicitação"
+]],
         body: dadosTabela,
         styles: {
             fontSize: 8,
@@ -1220,31 +1260,45 @@ function exportarPDF() {
             valign: "top"
         },
         headStyles: {
-            fillColor: [25, 52, 84],
-            textColor: 255
-        },
+    fillColor: [25, 52, 84],   // azul escuro
+    textColor: [255, 255, 255], // branco
+    fontStyle: "bold",
+    fontSize: 8
+},
+
         didParseCell(data) {
-    // Coluna "Evento"
-    if (data.column.index === 2 && data.section === 'body') {
-        data.cell.styles.fontStyle = "bold";
-        data.cell.styles.fontSize = 9;
-        data.cell.styles.textColor = [0, 26, 53]; // azul escuro
+    if (data.section === 'body') {
+        const rowIndex = data.row.index;
+        const idxOriginal = linhasVisiveis[rowIndex].dataset.idx;
+        const tipoEvento = (db[idxOriginal][11] || "").toLowerCase();
+
+        if (tipoEvento === 'integrada') {
+            data.cell.styles.fontStyle = "bold";
+        } else {
+            data.cell.styles.fontStyle = "normal";
+        }
     }
-}
+},
+didDrawCell(data) {
+    if (data.section !== 'body') return;
 
-    });
-const table = doc.lastAutoTable;
+    // coluna "Ofício de Solicitação" (índice 8)
+    if (data.column.index !== 8) return;
+    
+    const link = linkMap.find(l => l.row === data.row.index);
+    if (!link) return;
 
-linkMap.forEach(l => {
-    const cell = table.body[l.row].cells[7]; // coluna "Ofício"
-    doc.link(
-        cell.x,
-        cell.y,
-        cell.width,
-        cell.height,
-        { url: l.url }
+    doc.setTextColor(0, 0, 255);
+    doc.textWithLink(
+        'Abrir',
+        data.cell.x + 2,
+        data.cell.y + data.cell.height / 2 + 2,
+        { url: link.url }
     );
-});
+    doc.setTextColor(0, 0, 0);
+}
+    });
+
 
 
     /* ===== Calendário resumo ===== */
@@ -1285,10 +1339,20 @@ doc.autoTable({
         textColor: [0, 0, 0]
     },
     didParseCell(data) {
-        if (data.row.index === dadosResumo.length - 1) {
+    if (data.section === 'body') {
+        const rowIndex = data.row.index;
+        const linha = dadosTabela[rowIndex];
+
+        // verifica se o evento é integrado
+        const idxOriginal = linhasVisiveis[rowIndex].dataset.idx;
+        const tipoEvento = (db[idxOriginal][11] || "").toLowerCase();
+
+        if (tipoEvento === 'integrada') {
             data.cell.styles.fontStyle = "bold";
         }
     }
+}
+
 });
 
     /* ===== Rodapé ===== */
@@ -1299,7 +1363,7 @@ doc.autoTable({
         doc.setFontSize(8);
         doc.setTextColor(100);
         doc.text(
-            "Polícia Militar do Amazonas • Assessoria Integrada de Operações",
+            "Polícia Militar do Amazonas • Assessoria de Integração Operacional",
             doc.internal.pageSize.getWidth() / 2,
             doc.internal.pageSize.getHeight() - 10,
             { align: "center" }
