@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary: #001a35;
@@ -690,9 +690,22 @@ td .badge-aio {
     border-radius: 12px;
     cursor: pointer;
 ">
-    <i class="fas fa-file-export"></i> Exportar
+    <i class="fas fa-file-pdf"></i> Exportar PDF
 </button>
 
+<button onclick="exportarExcel()" style="
+    background: #16a34a;
+    border: none;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 12px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+">
+    <i class="fas fa-file-excel"></i> Exportar Excel
+</button>
 
                         
                     </div>
@@ -937,6 +950,21 @@ ${aioHTML}
             filter();
             document.getElementById('loading').style.display = 'none';
         }
+// ===== CONFIGURAÇÃO HEATMAP MINI-CALENDÁRIO =====
+const MAX_EVENTOS = 12;
+
+function corPorQuantidade(qtd) {
+    if (qtd <= 0) return null;
+
+    const intensidade = Math.min(qtd / MAX_EVENTOS, 1);
+
+    // Azul institucional
+    const r = Math.round(240 - intensidade * 200);
+    const g = Math.round(248 - intensidade * 116);
+    const b = Math.round(255 - intensidade * 56);
+
+    return [r, g, b];
+}
 
         function renderCalendar() {
             const months = [
@@ -1119,6 +1147,89 @@ if (filtroApoioAtivo) {
     document.getElementById('date-end').value = '';
     filter();
 }
+
+function desenharMiniCalendarioPDF(doc, mes, nomeMes, x, y, resumoDatas) {
+    const diasSemana = ["D", "S", "T", "Q", "Q", "S", "S"];
+    const w = 9;
+    const h = 9;
+    const ano = 2026;
+
+    // Verifica se há espaço na página; se não, cria nova página
+    const alturaNecessaria = 12 + h * 6; // Título + cabeçalho + até 6 linhas de dias
+    if (y + alturaNecessaria > doc.internal.pageSize.height - 10) {
+        doc.addPage();
+        y = 10; // Margem superior da nova página
+    }
+
+    // Título do mês
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`${nomeMes} ${ano}`, x, y);
+
+    // Cabeçalho dias da semana
+    doc.setFontSize(8);
+    diasSemana.forEach((d, i) => {
+        doc.text(d, x + i * w + w / 2, y + 6, { align: "center" });
+    });
+
+    const primeiroDia = new Date(ano, mes, 1).getDay();
+    const totalDias = new Date(ano, mes + 1, 0).getDate();
+
+    let linha = 0;
+    let coluna = primeiroDia;
+
+    for (let dia = 1; dia <= totalDias; dia++) {
+
+        const dataKey =
+            String(dia).padStart(2, '0') + '/' +
+            String(mes + 1).padStart(2, '0') + '/' +
+            ano;
+
+        const qtd = resumoDatas[dataKey] || 0;
+
+        const cellX = x + coluna * w;
+        const cellY = y + 12 + linha * h;
+
+        // Se ultrapassar a altura da página, cria nova página
+        if (cellY + h > doc.internal.pageSize.height - 10) {
+            doc.addPage();
+            y = 10;
+            linha = 0;
+        }
+
+        // ===== FUNDO HEATMAP =====
+        const corFundo = corPorQuantidade(qtd);
+        if (corFundo) {
+            doc.setFillColor(...corFundo);
+            doc.rect(cellX, cellY, w, h, "F");
+        }
+
+        // ===== BORDA =====
+        doc.setDrawColor(190);
+        doc.rect(cellX, cellY, w, h);
+
+        // Número do dia
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(7);
+        doc.setTextColor(0, 0, 0);
+        doc.text(String(dia), cellX + 1.2, cellY + 3);
+
+        // Total de eventos
+        if (qtd > 0) {
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(7);
+            doc.setTextColor(180, 0, 0);
+            doc.text(String(qtd), cellX + w / 2, cellY + h - 1.5, { align: "center" });
+        }
+
+        coluna++;
+        if (coluna === 7) {
+            coluna = 0;
+            linha++;
+        }
+    }
+}
 function filterByApoio(tipo) {
     // alterna o filtro
     filtroApoioAtivo = (filtroApoioAtivo === tipo) ? null : tipo;
@@ -1168,13 +1279,35 @@ doc.text("Assessoria de Integração Operacional – AIO", 34, 20);
 doc.setFontSize(11);
 doc.text("Eventos Carnavalescos Protocolados na PMAM – Carnaval 2026", 34, 26);
 
+
 // Data de geração
 doc.setFont("helvetica", "normal");
 doc.setFontSize(9);
+const agora = new Date();
+const dataHoraGeracao = agora.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+});
+const dataAtual = agora.toLocaleDateString("pt-BR");
+const horaAtual = agora.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit"
+});
+
 doc.text(
-    `Gerado em: ${new Date().toLocaleDateString("pt-BR")}`,
+    `Atualizado em: ${dataAtual}`,
     280,
     14,
+    { align: "right" }
+);
+
+doc.text(
+    `Hora: ${horaAtual}`,
+    280,
+    18,
     { align: "right" }
 );
 
@@ -1239,6 +1372,9 @@ if (linkOficio.toLowerCase().startsWith("http")) {
     if (r[2]) {
         resumoDatas[r[2]] = (resumoDatas[r[2]] || 0) + 1;
     }
+
+    // === CALCULAR LARGURA DA TABELA ===
+    
 });
     doc.autoTable({
         startY: 40,
@@ -1301,9 +1437,6 @@ didDrawCell(data) {
 
 
 
-    /* ===== Calendário resumo ===== */
-    /* ===== RESUMO POR DATA DO EVENTO ===== */
-
 //* ===== RESUMO POR DATA DO EVENTO ===== */
 
 const dadosResumo = Object.entries(resumoDatas)
@@ -1320,40 +1453,7 @@ dadosResumo.push(["TOTAL", totalEventos]);
 // Y base logo após a tabela principal
 let yBase = doc.lastAutoTable.finalY + 10;
 
-// Título (bem colado na tabela)
-doc.setFont("helvetica", "bold");
-doc.setFontSize(11);
-doc.text("Resumo por data do evento", 14, yBase);
-
 // Tabela começa logo abaixo do título
-doc.autoTable({
-    startY: yBase + 3,
-    head: [["Data do Evento", "Quantidade"]],
-    body: dadosResumo,
-    styles: {
-        fontSize: 9,
-        halign: "center"
-    },
-    headStyles: {
-        fillColor: [197, 160, 89],
-        textColor: [0, 0, 0]
-    },
-    didParseCell(data) {
-    if (data.section === 'body') {
-        const rowIndex = data.row.index;
-        const linha = dadosTabela[rowIndex];
-
-        // verifica se o evento é integrado
-        const idxOriginal = linhasVisiveis[rowIndex].dataset.idx;
-        const tipoEvento = (db[idxOriginal][11] || "").toLowerCase();
-
-        if (tipoEvento === 'integrada') {
-            data.cell.styles.fontStyle = "bold";
-        }
-    }
-}
-
-});
 
     /* ===== Rodapé ===== */
     const totalPaginas = doc.getNumberOfPages();
@@ -1375,8 +1475,170 @@ doc.autoTable({
             { align: "right" }
         );
     }
+    // --- Desenhar os três meses ---
+/* ===== Mini calendário ajustado ===== */
+/* ===== Mini calendário ajustado ===== */
+let startY = doc.lastAutoTable.finalY + 20;
+const w = 7; // largura de cada célula
+const h = 7; // altura de cada célula
+let gap = 20; // aumento do espaçamento entre os meses
+const alturaMiniCalendario = 12 + h * 6; // título + 6 linhas de dias
+const pageHeight = doc.internal.pageSize.getHeight();
+const bottomMargin = 20;
+
+// Se não houver espaço suficiente, cria nova página
+if (startY + alturaMiniCalendario + 40 > pageHeight - bottomMargin) { // +40 para o total de eventos
+    doc.addPage();
+    startY = 20; // margem superior da nova página
+}
+
+const larguraMes = w * 7 + 2;
+const larguraTotal = larguraMes * 3 + gap * 2;
+const startX = (doc.internal.pageSize.getWidth() - larguraTotal) / 2;
+
+// Título do mini calendário
+doc.setFont("helvetica", "bold");
+doc.setFontSize(12);
+doc.setTextColor(40, 40, 40);
+doc.text("Distribuição Diária de Eventos",
+    doc.internal.pageSize.getWidth() / 2,
+    startY - 6,
+    { align: "center" });
+
+// Desenha os três meses lado a lado
+desenharMiniCalendarioPDF(doc, 0, "Janeiro", startX, startY, resumoDatas, w, h);
+desenharMiniCalendarioPDF(doc, 1, "Fevereiro", startX + larguraMes + gap, startY, resumoDatas, w, h);
+desenharMiniCalendarioPDF(doc, 2, "Março", startX + (larguraMes + gap) * 2, startY, resumoDatas, w, h);
+
+// Total de eventos abaixo do mini calendário, mais afastado
+doc.setFont("helvetica", "bold");
+doc.setFontSize(10);
+doc.setTextColor(40, 40, 40);
+const totalY = startY + alturaMiniCalendario + 20; // aumentei de +6 para +20
+doc.text(`Total de eventos no período: ${totalEventos}`,
+    doc.internal.pageSize.getWidth() / 2,
+    totalY,
+    { align: "center" });
+
+
+// Desenha os três meses lado a lado
+desenharMiniCalendarioPDF(doc, 0, "Janeiro", startX, startY, resumoDatas, w, h);
+desenharMiniCalendarioPDF(doc, 1, "Fevereiro", startX + larguraMes + gap, startY, resumoDatas, w, h);
+desenharMiniCalendarioPDF(doc, 2, "Março", startX + (larguraMes + gap) * 2, startY, resumoDatas, w, h);
+
+// Total de eventos abaixo do mini calendário
+doc.setFont("helvetica", "bold");
+doc.setFontSize(10);
+doc.setTextColor(40, 40, 40);
 
     doc.save("Eventos_Carnaval_2026.pdf");
+}
+function exportarExcel() {
+
+    const linhasVisiveis = Array.from(document.querySelectorAll("#tbody tr"))
+        .filter(tr => tr.style.display !== "none");
+
+    if (linhasVisiveis.length === 0) {
+        alert("Nenhum evento para exportar.");
+        return;
+    }
+    const colunas = [
+        "Data do Protocolo",
+        "Data do Evento",
+        "Horário",
+        "Evento",
+        "Endereço / Zona",
+        "Responsável",
+        "Contato",
+        "Público Estimado",
+        "Ofício de Solicitação"
+    ];
+
+    const dados = [];
+    dados.push(colunas);
+
+    linhasVisiveis.forEach(tr => {
+        const r = db[tr.dataset.idx];
+        dados.push([
+            r[1] || "",
+            r[2] || "",
+            `${r[4] || ""} às ${r[5] || ""}`,
+            r[3] || "",
+            r[6] || "",
+            r[8] || "",
+            r[9] || "",
+            r[7] || "",
+            r[10] || ""
+        ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Eventos");
+    XLSX.writeFile(wb, "Eventos_Carnaval_2026.xlsx");
+}
+function exportarExcel() {
+
+    const linhasVisiveis = Array.from(document.querySelectorAll("#tbody tr"))
+        .filter(tr => tr.style.display !== "none");
+
+    if (linhasVisiveis.length === 0) {
+        alert("Nenhum evento para exportar.");
+        return;
+    }
+
+    const dados = [];
+
+    // Cabeçalho
+    dados.push([
+        "Data do Protocolo",
+        "Data do Evento",
+        "Horário",
+        "Evento",
+        "Endereço / Zona",
+        "Responsável",
+        "Contato",
+        "Público Estimado",
+        "Ofício de Solicitação"
+    ]);
+
+    linhasVisiveis.forEach(tr => {
+        const idx = tr.dataset.idx;
+        const r = db[idx];
+
+        const endereco = r[6] || "";
+        let zona = "";
+
+        if (endereco.toLowerCase().includes("zona")) {
+            zona = endereco.match(/zona\s+\w+/i)?.[0] || "";
+        }
+
+        let linkOficio = (r[15] || "").trim().replace(/\s+/g, '');
+        if (linkOficio && !linkOficio.startsWith("http")) {
+            linkOficio = "https://" + linkOficio;
+        }
+
+        dados.push([
+            r[1] || "",
+            r[2] || "",
+            `${r[4] || ""} às ${r[5] || ""}`,
+            r[3] || "",
+            zona
+                ? `${endereco.replace(zona, "")} - Zona: ${zona.toUpperCase()}`
+                : endereco,
+            r[8] || "",
+            r[9] || "",
+            r[7] || "",
+            linkOficio || ""
+        ]);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(dados);
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Eventos");
+
+    XLSX.writeFile(workbook, "eventos_carnaval_2026.xlsx");
 }
     </script>
 </body>
