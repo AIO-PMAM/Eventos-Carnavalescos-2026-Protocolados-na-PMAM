@@ -679,22 +679,9 @@ td .badge-aio {
 ">
     Limpar
 </button>
-<button onclick="exportarPDF()" style="
-    background: var(--accent);
-    border: none;
-    color: var(--primary);
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    padding: 12px 18px;
-    border-radius: 12px;
-    cursor: pointer;
-">
-    <i class="fas fa-file-pdf"></i> Exportar PDF
-</button>
 
-<button onclick="exportarExcel()" style="
-    background: #16a34a;
+<<button onclick="exportarPDF()" style="
+    background: #dc2626;
     border: none;
     color: #ffffff;
     font-size: 11px;
@@ -703,8 +690,30 @@ td .badge-aio {
     padding: 12px 18px;
     border-radius: 12px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 ">
-    <i class="fas fa-file-excel"></i> Exportar Excel
+    <i class="fas fa-file-pdf" style="font-size: 1.5rem; vertical-align: middle;"></i> 
+    <span>exportar</span>
+</button>
+
+<button onclick="exportarExcel()" style="
+    background: hsl(142, 29%, 53%);
+    border: none;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 12px 18px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+">
+    <i class="fas fa-file-excel" style="font-size: 1.5rem; vertical-align: middle;"></i> 
+    <span>Exportar</span>
 </button>
 
                         
@@ -735,7 +744,7 @@ td .badge-aio {
             <div class="header">
                 <div>
                     <small style="text-transform: uppercase; color: var(--accent); font-weight: 800; letter-spacing: 1px;">Cronograma - Carnaval 2026</small>
-                    <h1>Quantidade de eventos por data</h1>
+                    <h1>Distribuição Diária de Eventos</h1>
                 </div>
             </div>
             <div class="calendar-container" id="calendar-render"></div>
