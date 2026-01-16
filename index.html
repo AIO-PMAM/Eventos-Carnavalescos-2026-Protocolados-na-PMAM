@@ -777,6 +777,26 @@ td .badge-aio {
         let usuariosPermitidos = [];
         let filtroLocalAtivo = null;
 
+        function filterByLocal(tipo) {
+  // toggle: clicou no mesmo -> limpa o filtro
+  filtroLocalAtivo = (filtroLocalAtivo === tipo) ? null : tipo;
+
+  // remove destaque dos 2 cards
+  document.getElementById('kpi-via-publica').classList.remove('active-filter');
+  document.getElementById('kpi-local-fechado').classList.remove('active-filter');
+
+  // aplica destaque somente no ativo
+  if (filtroLocalAtivo === 'via_publica') {
+    document.getElementById('kpi-via-publica').classList.add('active-filter');
+  } else if (filtroLocalAtivo === 'local_fechado') {
+    document.getElementById('kpi-local-fechado').classList.add('active-filter');
+  }
+
+  // executa o filtro geral (texto + datas + local)
+  filter();
+}
+
+
         // Carrega usuários assim que a página abre
         window.onload = () => {
             Papa.parse(CONFIG.CSV_LOGIN, {
@@ -1127,9 +1147,10 @@ if (sigedRaw && !sigedRaw.startsWith('http')) {
         if (endDate && eventDate > endDate) match = false;
 
         // filtro por local (Via pública / Local fechado)
-        if (filtroLocalAtivo) {
-            if (tipoLocal !== filtroLocalAtivo) match = false;
-        }
+        if (filtroLocalAtivo && tipoLocal) {
+  if (tipoLocal !== filtroLocalAtivo) match = false;
+}
+
 
         if (match) {
             tr.style.display = '';
@@ -1590,8 +1611,8 @@ function exportarExcel() {
         .filter(tr => tr.style.display !== "none");
 
     if (linhasVisiveis.length === 0) {
-        alert("Nenhum evento para exportar.");
-        return;
+    showToast("⚠️ Nenhum evento para exportar.");
+    return;
     }
 
     const dados = [];
@@ -1684,6 +1705,23 @@ function showToast(msg, ms = 2500) {
     toast.style.transform = "translateY(-6px)";
     setTimeout(() => (toast.style.display = "none"), 200);
   }, ms);
+}
+function normalizar(txt) {
+  return (txt || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function getTipoLocalFromRow(tr) {
+  const idx = tr.dataset.idx;
+  const r = db[idx] || [];
+  const textoLinha = normalizar(r.join(" "));
+
+  if (textoLinha.includes("VIA PUBLICA")) return "via_publica";
+  if (textoLinha.includes("LOCAL FECHADO")) return "local_fechado";
+
+  return null;
 }
 
     </script>
