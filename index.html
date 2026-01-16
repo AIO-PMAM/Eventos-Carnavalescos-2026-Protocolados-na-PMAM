@@ -1321,9 +1321,9 @@ doc.text(
         .filter(tr => tr.style.display !== "none");
 
     if (linhasVisiveis.length === 0) {
-        alert("Nenhum evento para exportar.");
-        return;
-    }
+    showToast("⚠️ Nenhum evento para exportar.");
+    return;
+}
 
     /* ===== Montagem da tabela principal ===== */
     const dadosTabela = [];
@@ -1536,7 +1536,9 @@ doc.setFont("helvetica", "bold");
 doc.setFontSize(10);
 doc.setTextColor(40, 40, 40);
 
-    doc.save("Eventos_Carnaval_2026.pdf");
+   doc.save("Eventos_Carnaval_2026.pdf");
+showToast("✅ Sua exportação (PDF) foi baixada.");
+
 }
 function exportarExcel() {
 
@@ -1544,9 +1546,9 @@ function exportarExcel() {
         .filter(tr => tr.style.display !== "none");
 
     if (linhasVisiveis.length === 0) {
-        alert("Nenhum evento para exportar.");
-        return;
-    }
+    showToast("⚠️ Nenhum evento para exportar.");
+    return;
+}
     const colunas = [
         "Data do Protocolo",
         "Data do Evento",
@@ -1644,6 +1646,9 @@ function exportarExcel() {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Eventos");
 
     XLSX.writeFile(workbook, "eventos_carnaval_2026.xlsx");
+showToast("✅ Sua exportação (Excel) foi baixada.");
+
+    
 }
 function getTipoLocalFromRow(tr) {
     const idx = tr.dataset.idx;
@@ -1656,7 +1661,48 @@ function getTipoLocalFromRow(tr) {
 
     return null; // não classificado
 }
+function showToast(msg, ms = 2500) {
+  const toast = document.getElementById("toast");
+  const span = document.getElementById("toast-msg");
+  span.textContent = msg;
+
+  toast.style.display = "block";
+  toast.style.opacity = "0";
+  toast.style.transform = "translateY(-6px)";
+  toast.style.transition = "all .2s ease";
+
+  // anima entrada
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  });
+
+  // some depois
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(-6px)";
+    setTimeout(() => (toast.style.display = "none"), 200);
+  }, ms);
+}
 
     </script>
+    <div id="toast" style="
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #0f172a;
+  color: #fff;
+  padding: 14px 16px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.25);
+  font-size: 13px;
+  font-weight: 700;
+  display: none;
+  z-index: 99999;
+  max-width: 320px;
+">
+  <span id="toast-msg"></span>
+</div>
 </body>
 </html>
