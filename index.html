@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -645,14 +646,14 @@ td .badge-aio {
 
             <div class="kpi-grid">
                 <div class="kpi-card highlight"><small>Total de Eventos</small><h2 id="k-total">0</h2></div>
-                <div class="kpi-card" id="kpi-integrado" onclick="filterByApoio('integrado')" style="cursor:pointer">
-    <small>Apoio Prefeitura/Estado</small>
-    <h2 id="k-integ">0</h2>
+                <div class="kpi-card" id="kpi-via-publica" onclick="filterByLocal('via_publica')" style="cursor:pointer">
+    <small>Via pública</small>
+    <h2 id="k-via">0</h2>
 </div>
 
-<div class="kpi-card" id="kpi-particular" onclick="filterByApoio('particular')" style="cursor:pointer">
-    <small>Particular</small>
-    <h2 id="k-parti">0</h2>
+<div class="kpi-card" id="kpi-local-fechado" onclick="filterByLocal('local_fechado')" style="cursor:pointer">
+    <small>Local Fechado</small>
+    <h2 id="k-fechado">0</h2>
 </div>
 
 
@@ -774,7 +775,7 @@ td .badge-aio {
 
         let db = [];
         let usuariosPermitidos = [];
-        let filtroApoioAtivo = null;
+        let filtroLocalAtivo = null;
 
         // Carrega usuários assim que a página abre
         window.onload = () => {
@@ -1106,51 +1107,46 @@ if (sigedRaw && !sigedRaw.startsWith('http')) {
         }
 
         function filter() {
-            const searchText = document.getElementById('search').value.toLowerCase();
-            const startStr = document.getElementById('date-start').value;
-            const endStr = document.getElementById('date-end').value;
-            const startDate = startStr ? new Date(startStr + "T00:00:00") : null;
-            const endDate = endStr ? new Date(endStr + "T23:59:59") : null;
+    const searchText = document.getElementById('search').value.toLowerCase();
+    const startStr = document.getElementById('date-start').value;
+    const endStr = document.getElementById('date-end').value;
+    const startDate = startStr ? new Date(startStr + "T00:00:00") : null;
+    const endDate = endStr ? new Date(endStr + "T23:59:59") : null;
 
-            let counts = { total: 0, integ: 0, parti: 0 };
+    let counts = { total: 0, via: 0, fechado: 0 };
 
-            document.querySelectorAll('#tbody tr').forEach((tr) => {
-                const rowText = tr.innerText.toLowerCase();
-                const [day, month, year] = tr.getAttribute('data-event-date').split('/');
-                const eventDate = new Date(year, month - 1, day);
-                const apoioText = tr.cells[4].innerText.toUpperCase();
+    document.querySelectorAll('#tbody tr').forEach((tr) => {
+        const rowText = tr.innerText.toLowerCase();
+        const [day, month, year] = tr.getAttribute('data-event-date').split('/');
+        const eventDate = new Date(year, month - 1, day);
 
-                let match = rowText.includes(searchText);
-                if (startDate && eventDate < startDate) match = false;
-                if (endDate && eventDate > endDate) match = false;
-if (filtroApoioAtivo) {
-    if (filtroApoioAtivo === 'integrado') {
-        if (!(apoioText.includes('ESTADO') || apoioText.includes('PREFEITURA'))) {
-            match = false;
+        const tipoLocal = getTipoLocalFromRow(tr);
+
+        let match = rowText.includes(searchText);
+        if (startDate && eventDate < startDate) match = false;
+        if (endDate && eventDate > endDate) match = false;
+
+        // filtro por local (Via pública / Local fechado)
+        if (filtroLocalAtivo) {
+            if (tipoLocal !== filtroLocalAtivo) match = false;
         }
-    }
 
-    if (filtroApoioAtivo === 'particular') {
-        if (apoioText.includes('ESTADO') || apoioText.includes('PREFEITURA')) {
-            match = false;
+        if (match) {
+            tr.style.display = '';
+            counts.total++;
+
+            if (tipoLocal === "via_publica") counts.via++;
+            else if (tipoLocal === "local_fechado") counts.fechado++;
+        } else {
+            tr.style.display = 'none';
         }
-    }
+    });
+
+    document.getElementById('k-total').innerText = counts.total;
+    document.getElementById('k-via').innerText = counts.via;
+    document.getElementById('k-fechado').innerText = counts.fechado;
 }
 
-                if (match) {
-                    tr.style.display = '';
-                    counts.total++;
-                    if (apoioText.includes('ESTADO') || apoioText.includes('PREFEITURA')) counts.integ++;
-                    else counts.parti++;
-                } else {
-                    tr.style.display = 'none';
-                }
-            });
-
-            document.getElementById('k-total').innerText = counts.total;
-            document.getElementById('k-integ').innerText = counts.integ;
-            document.getElementById('k-parti').innerText = counts.parti;
-        }
         function clearDateFilters() {
     document.getElementById('date-start').value = '';
     document.getElementById('date-end').value = '';
@@ -1649,6 +1645,18 @@ function exportarExcel() {
 
     XLSX.writeFile(workbook, "eventos_carnaval_2026.xlsx");
 }
+function getTipoLocalFromRow(tr) {
+    const idx = tr.dataset.idx;
+    const r = db[idx] || [];
+    const textoLinha = r.join(" ").toUpperCase();
+
+    // Ajuste aqui os termos exatamente como aparecem no seu Sheets/CSV
+    if (textoLinha.includes("VIA PÚBLICA") || textoLinha.includes("VIA PUBLICA")) return "via_publica";
+    if (textoLinha.includes("LOCAL FECHADO")) return "local_fechado";
+
+    return null; // não classificado
+}
+
     </script>
 </body>
 </html>
