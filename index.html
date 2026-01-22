@@ -692,7 +692,6 @@ tr.grande-porte td:last-child {
             <span style="font-weight: 800; letter-spacing: 1px; color: var(--accent)">Assessoria de Integração Operacional</span>
         </div>
         <nav class="nav-menu">
-            <nav class="nav-menu">
   <div class="nav-link active" id="btn-dash" onclick="showTab('dashboard')">
     <i class="fas fa-masks-theater"></i> <span>Eventos - Capital</span>
   </div>
@@ -702,8 +701,14 @@ tr.grande-porte td:last-child {
   </div>
 
   <div class="nav-link" id="btn-interior" onclick="showTab('interior'); fetchDataInterior();">
-  <i class="fas fa-map-location-dot"></i> <span>Eventos - Interior</span>
+    <i class="fas fa-map-location-dot"></i> <span>Eventos - Interior</span>
+  </div>
+
+  <div class="nav-link" id="btn-cal-interior"
+     onclick="showTab('calendarInterior'); ensureInteriorLoadedThenCalendar();">
+  <i class="fas fa-calendar-check"></i> <span>Calendário - Interior</span>
 </div>
+
 </nav>
 
         </nav>
@@ -837,6 +842,7 @@ tr.grande-porte td:last-child {
         <div id="view-interior" style="display:none;">
   <div class="header">
     <div>
+        
       <small style="text-transform: uppercase; color: var(--accent); font-weight: 800; letter-spacing: 1px;">
         Eventos Carnavalescos 2026
       </small>
@@ -892,23 +898,25 @@ tr.grande-porte td:last-child {
     </div>
   </div>
 </div>
+    <div id="view-interior" style="display:none;">
+  ...
+</div>
+
+<div id="view-calendar-interior" style="display:none;">
+  <div class="header">
+    <div>
+      <small style="text-transform: uppercase; color: var(--accent); font-weight: 800; letter-spacing: 1px;">
+        Cronograma - Interior
+      </small>
+      <h1>Distribuição Diária de Eventos (Interior)</h1>
+    </div>
+  </div>
+
+  <div class="calendar-container" id="calendar-render-interior"></div>
+</div>
 
     </main>
-
-    <div id="modal">
-        <div class="modal-body">
-            <div style="background:var(--primary); padding:25px; color:white; position:relative">
-                <small id="m-proto" style="color:var(--accent); font-weight:700"></small>
-                <h2 id="m-name" style="margin-top:5px; font-size:1.2rem;"></h2>
-                <i class="fas fa-times" onclick="closeModal()" style="position:absolute; top:25px; right:25px; cursor:pointer; opacity:0.8; font-size: 1.2rem;"></i>
-            </div>
-            <div id="m-content" style="padding:25px;"></div>
-            <div style="padding:20px 25px; background:#f8fafc; text-align:right">
-                <button class="btn-auth" style="width:auto; padding:12px 30px;" onclick="closeModal()">Sair</button>
-            </div>
-            
-        </div>
-    </div>
+    
 
     <script>
         const CONFIG = {
@@ -1000,15 +1008,18 @@ function filterByDate(dateStr) {
         }
 
 
-        function showTab(tab) {
+    function showTab(tab) {
   document.getElementById('view-dashboard').style.display = (tab === 'dashboard') ? 'block' : 'none';
   document.getElementById('view-calendar').style.display  = (tab === 'calendar')  ? 'block' : 'none';
   document.getElementById('view-interior').style.display  = (tab === 'interior')  ? 'block' : 'none';
+  document.getElementById('view-calendar-interior').style.display = (tab === 'calendarInterior') ? 'block' : 'none';
 
   document.getElementById('btn-dash').classList.toggle('active', tab === 'dashboard');
   document.getElementById('btn-cal').classList.toggle('active', tab === 'calendar');
   document.getElementById('btn-interior').classList.toggle('active', tab === 'interior');
+  document.getElementById('btn-cal-interior').classList.toggle('active', tab === 'calendarInterior');
 }
+
 
 
         function fetchData() {
@@ -2184,6 +2195,60 @@ function endOfDay(d) {
 function rangesIntersect(aStart, aEnd, bStart, bEnd) {
   return aEnd >= bStart && aStart <= bEnd;
 }
+function addDays(d, n) {
+  const x = new Date(d);
+  x.setDate(x.getDate() + n);
+  return x;
+}
+
+function fmtBR(d) {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
+// Clique no calendário (Interior) -> filtra lista do interior por um dia,
+// mas respeitando eventos com intervalo (início..término)
+function filterByDateInterior(day, month, year) {
+  const dd = String(day).padStart(2, "0");
+  const mm = String(month + 1).padStart(2, "0"); // month vem 0-based
+  const iso = `${year}-${mm}-${dd}`;
+
+  const a = document.getElementById("date-start-interior");
+  const b = document.getElementById("date-end-interior");
+  if (a) a.value = iso;
+  if (b) b.value = iso;
+
+  // mostra a lista e aplica filtro
+  showTab("interior");
+  filterInterior();
+}
+
+// garante: se ainda não carregou, carrega e só depois renderiza o calendário
+function ensureInteriorLoadedThenCalendar() {
+  showTab("calendarInterior");
+
+  if (Array.isArray(dbInterior) && dbInterior.length > 0) {
+    renderCalendarInterior();
+    return;
+  }
+
+  fetchDataInterior();
+
+  // aguarda o parse terminar (sem travar)
+  let guard = 0;
+  const t = setInterval(() => {
+    guard++;
+    if (Array.isArray(dbInterior) && dbInterior.length > 0) {
+      clearInterval(t);
+      renderCalendarInterior();
+    }
+    if (guard > 40) clearInterval(t); // ~4s no máximo
+  }, 100);
+}
+
+
 function parsePublico(valor) {
   if (!valor) return 0;
 
@@ -2195,6 +2260,92 @@ function parsePublico(valor) {
     .match(/\d+/);
 
   return n ? parseInt(n[0], 10) : 0;
+}
+function renderCalendarInterior() {
+  const container = document.getElementById('calendar-render-interior');
+  if (!container) {
+    console.error("calendar-render-interior não encontrado no HTML.");
+    return;
+  }
+
+  container.innerHTML = '';
+
+  if (!Array.isArray(dbInterior) || dbInterior.length === 0) {
+    container.innerHTML = `<div style="color:var(--text-muted); padding:20px;">Nenhum evento do Interior carregado.</div>`;
+    return;
+  }
+
+  // Meses fixos (igual capital)
+  const months = [
+    { name: 'Janeiro', month: 0, year: 2026 },
+    { name: 'Fevereiro', month: 1, year: 2026 },
+    { name: 'Março', month: 2, year: 2026 }
+  ];
+
+  // Conta eventos por dia considerando intervalo início..término
+  const counts = {}; // key: "DD/MM/YYYY" -> count
+
+  (dbInterior || []).forEach(ev => {
+    const iniRaw = parseAnyDateToDate(ev.inicio);
+    const fimRaw = parseAnyDateToDate(ev.termino);
+
+    const ini = iniRaw ? startOfDay(iniRaw) : null;
+    const fim = fimRaw ? endOfDay(fimRaw) : (ini ? endOfDay(ini) : null);
+    if (!ini || !fim) return;
+
+    let cur = startOfDay(ini);
+    const last = startOfDay(fim);
+
+    let guard = 0;
+    while (cur <= last && guard < 500) {
+      const key = fmtBR(cur); // "DD/MM/YYYY"
+      counts[key] = (counts[key] || 0) + 1;
+      cur = addDays(cur, 1);
+      guard++;
+    }
+  });
+
+  // Renderiza os 3 meses
+  months.forEach(mInfo => {
+    const monthDiv = document.createElement('div');
+    monthDiv.className = 'month-card';
+
+    let html = `<div class="month-title">${mInfo.name} ${mInfo.year}</div>`;
+    html += `<div class="calendar-grid">
+      <div class="day-name">D</div><div class="day-name">S</div><div class="day-name">T</div>
+      <div class="day-name">Q</div><div class="day-name">Q</div><div class="day-name">S</div><div class="day-name">S</div>`;
+
+    const firstDay = new Date(mInfo.year, mInfo.month, 1).getDay();
+    const daysInMonth = new Date(mInfo.year, mInfo.month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) html += '<div></div>';
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(mInfo.year, mInfo.month, day);
+      const key = fmtBR(d);
+      const count = counts[key] || 0;
+
+      let statusClass = '';
+      if (count > 12) statusClass = 'has-events status-alert';
+      else if (count > 0) statusClass = 'has-events';
+
+      const badge = count > 0 ? `<span class="event-count">${count}</span>` : '';
+
+      html += `
+        <div class="day-cell ${statusClass}"
+             title="${count > 0 ? 'Clique para filtrar eventos deste dia' : ''}"
+             onclick="${count > 0 ? `filterByDateInterior(${day}, ${mInfo.month}, ${mInfo.year})` : ''}">
+          <span class="day-number">${day}</span>
+          ${badge}
+        </div>`;
+    }
+
+    html += `</div>`;
+    monthDiv.innerHTML = html;
+    container.appendChild(monthDiv);
+  });
+
+  console.log("Calendário Interior (Jan/Fev/Mar) renderizado:", dbInterior.length, "eventos");
 }
 
     </script>
