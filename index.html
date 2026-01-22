@@ -592,6 +592,59 @@ td .badge-aio {
 .envolvido-ok {
     color: var(--success); /* verde */
 }
+.badge-grande-porte {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 10px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #7c2d12;
+  background: #ffedd5;
+  border: 1px solid #fb923c;
+  border-radius: 999px;
+}
+/* ===== EVENTO DE GRANDE PORTE (INTERIOR) ===== */
+
+tr.grande-porte {
+  background: #f0f9ff;                /* azul claro */
+  border-left: 6px solid #0284c7;      /* azul institucional */
+}
+
+tr.grande-porte:hover {
+  background: #e0f2fe;
+}
+
+/* Garante arredondamento */
+tr.grande-porte td:first-child {
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+}
+
+tr.grande-porte td:last-child {
+  border-top-right-radius: 14px;
+  border-bottom-right-radius: 14px;
+}
+
+/* Badge GRANDE PORTE no topo do nome */
+.badge-grande-porte-topo {
+  position: absolute;
+  top: 2px;                    /* distância vertical acima do nome */
+  left: 50%;                   /* ponto central da célula */
+  transform: translateX(-50%); /* centraliza de verdade */
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #ffffff;
+  background: #0284c7;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(2, 132, 199, 0.35);
+  white-space: nowrap;
+}
+
 
     </style>
 </head>
@@ -620,8 +673,20 @@ td .badge-aio {
             <span style="font-weight: 800; letter-spacing: 1px; color: var(--accent)">Assessoria de Integração Operacional</span>
         </div>
         <nav class="nav-menu">
-            <div class="nav-link active" id="btn-dash" onclick="showTab('dashboard')"><i class="fas fa-masks-theater"></i> <span>Eventos</span></div>
-            <div class="nav-link" id="btn-cal" onclick="showTab('calendar')"><i class="fas fa-calendar-alt"></i> <span>Calendário</span></div>
+            <nav class="nav-menu">
+  <div class="nav-link active" id="btn-dash" onclick="showTab('dashboard')">
+    <i class="fas fa-masks-theater"></i> <span>Eventos - Capital</span>
+  </div>
+
+  <div class="nav-link" id="btn-cal" onclick="showTab('calendar')">
+    <i class="fas fa-calendar-alt"></i> <span>Calendário - Capital</span>
+  </div>
+
+  <div class="nav-link" id="btn-interior" onclick="showTab('interior'); fetchDataInterior();">
+  <i class="fas fa-map-location-dot"></i> <span>Eventos - Interior</span>
+</div>
+</nav>
+
         </nav>
         <div class="nav-link" style="margin-top:auto; color:#ef4444" onclick="location.reload()">
             <i class="fas fa-right-from-bracket"></i> <span>Sair</span>
@@ -681,7 +746,7 @@ td .badge-aio {
     Limpar
 </button>
 
-<<button onclick="exportarPDF()" style="
+<button onclick="exportarPDF()" style="
     background: #dc2626;
     border: none;
     color: #ffffff;
@@ -750,6 +815,64 @@ td .badge-aio {
             </div>
             <div class="calendar-container" id="calendar-render"></div>
         </div>
+        <div id="view-interior" style="display:none;">
+  <div class="header">
+    <div>
+      <small style="text-transform: uppercase; color: var(--accent); font-weight: 800; letter-spacing: 1px;">
+        Eventos Carnavalescos 2026
+      </small>
+      <h1>Cronograma de Eventos - Interior</h1>
+    </div>
+
+    <div>
+      <button onclick="fetchDataInterior()" style="background:none; border:none; color:var(--accent); cursor:pointer; font-size:12px; font-weight:700; text-transform:uppercase; margin-top:5px;">
+        <i class="fas fa-sync-alt"></i> Sincronizar
+      </button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-top">
+      <div class="search-container">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search-interior" class="search-box" placeholder="Pesquisar..." onkeyup="filterInterior()">
+      </div>
+
+      <div class="date-filter-group">
+        <label>Filtro:</label>
+        <input type="date" id="date-start-interior" class="date-input" onchange="filterInterior()">
+        <input type="date" id="date-end-interior" class="date-input" onchange="filterInterior()">
+
+        <button onclick="clearDateFiltersInterior()" style="
+          background:none;border:none;color:var(--accent);font-size:11px;font-weight:800;text-transform:uppercase;cursor:pointer;">
+          Limpar
+        </button>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Início</th>
+            <th>Término</th>
+            <th>Evento</th>
+            <th>Município</th>
+            <th>Público</th>
+            <th>Solicitante</th>
+            <th>Contato</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-interior"></tbody>
+      </table>
+    </div>
+
+    <div id="loading-interior" style="padding:40px; text-align:center; color: var(--text-muted); display:none;">
+      <i class="fas fa-circle-notch fa-spin fa-2x"></i><br><br>
+      <span>Carregando...</span>
+    </div>
+  </div>
+</div>
 
     </main>
 
@@ -764,18 +887,22 @@ td .badge-aio {
             <div style="padding:20px 25px; background:#f8fafc; text-align:right">
                 <button class="btn-auth" style="width:auto; padding:12px 30px;" onclick="closeModal()">Sair</button>
             </div>
+            
         </div>
     </div>
 
     <script>
         const CONFIG = {
             CSV: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCwtXoSdAx3GqxDCCA9oWn4z4shTDz0FZbEI579BiQj1JiLhM0q24qiRb0yu_dHa7tblthkZNyDmrC/pub?gid=1759437894&single=true&output=csv",
-            CSV_LOGIN: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCwtXoSdAx3GqxDCCA9oWn4z4shTDz0FZbEI579BiQj1JiLhM0q24qiRb0yu_dHa7tblthkZNyDmrC/pub?gid=2034272661&single=true&output=csv"
+            CSV_LOGIN: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCwtXoSdAx3GqxDCCA9oWn4z4shTDz0FZbEI579BiQj1JiLhM0q24qiRb0yu_dHa7tblthkZNyDmrC/pub?gid=2034272661&single=true&output=csv",
+            CSV_INTERIOR: "https://docs.google.com/spreadsheets/d/e/2PACX-1vT5oVbTKhBjBm-Bw28Bg6_YSSYd9Y-ShDaSClLKPEU4wl0dI5VRKz4X0kbiNutnHlYRTIHkJBhw3sG4/pub?gid=781068849&single=true&output=csv"
+            
         };
 
         let db = [];
         let usuariosPermitidos = [];
         let filtroLocalAtivo = null;
+        let dbInterior = [];
 
         function filterByLocal(tipo) {
   // toggle: clicou no mesmo -> limpa o filtro
@@ -855,11 +982,15 @@ function filterByDate(dateStr) {
 
 
         function showTab(tab) {
-            document.getElementById('view-dashboard').style.display = tab === 'dashboard' ? 'block' : 'none';
-            document.getElementById('view-calendar').style.display = tab === 'calendar' ? 'block' : 'none';
-            document.getElementById('btn-dash').classList.toggle('active', tab === 'dashboard');
-            document.getElementById('btn-cal').classList.toggle('active', tab === 'calendar');
-        }
+  document.getElementById('view-dashboard').style.display = (tab === 'dashboard') ? 'block' : 'none';
+  document.getElementById('view-calendar').style.display  = (tab === 'calendar')  ? 'block' : 'none';
+  document.getElementById('view-interior').style.display  = (tab === 'interior')  ? 'block' : 'none';
+
+  document.getElementById('btn-dash').classList.toggle('active', tab === 'dashboard');
+  document.getElementById('btn-cal').classList.toggle('active', tab === 'calendar');
+  document.getElementById('btn-interior').classList.toggle('active', tab === 'interior');
+}
+
 
         function fetchData() {
             document.getElementById('loading').style.display = 'block';
@@ -1722,6 +1853,329 @@ function getTipoLocalFromRow(tr) {
   if (textoLinha.includes("LOCAL FECHADO")) return "local_fechado";
 
   return null;
+}
+function parseAnyDateToDate(dateStr) {
+  const s0 = (dateStr || "").toString().trim();
+  if (!s0) return null;
+
+  // pega só a parte da data (antes de espaço)
+  const s = s0.split(" ")[0].trim();
+
+  // dd/mm/aaaa
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) {
+    const dd = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    const yyyy = parseInt(m[3], 10);
+    const d = new Date(yyyy, mm - 1, dd);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // aaaa-mm-dd (ou aaaa-mm-ddTHH:MM...)
+  m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) {
+    const yyyy = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    const dd = parseInt(m[3], 10);
+    const d = new Date(yyyy, mm - 1, dd);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // fallback: tenta Date.parse (pode funcionar em alguns casos)
+  const d2 = new Date(s0);
+  return isNaN(d2.getTime()) ? null : d2;
+}
+
+
+function getField(row, ...names) {
+  // tenta pegar o campo por variações de nome (robusto contra acentos/maiúsculas)
+  const norm = (t) => (t || "")
+    .toString()
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const keys = Object.keys(row || {});
+  for (const desired of names) {
+    const d = norm(desired);
+    const hit = keys.find(k => norm(k) === d);
+    if (hit) return (row[hit] ?? "").toString().trim();
+  }
+  return "";
+}
+
+function parseDateBR_toISO(dateStr) {
+  const s = (dateStr || "").trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return "";
+  const dd = m[1].padStart(2, "0");
+  const mm = m[2].padStart(2, "0");
+  const yyyy = m[3];
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function safeStr(v) {
+  return (v ?? "").toString().trim();
+}
+
+// Índices das colunas (A=0, B=1, C=2...)
+const IDX = {
+  inicio: 2,       // C
+  termino: 3,      // D
+  nome: 4,         // E
+  horaInicio: 5,   // F
+  horaTermino: 6,  // G
+  municipio: 7,    // H
+  publico: 8,      // I
+  solicitante: 10, // K
+  contato: 11      // L
+};
+
+function fetchDataInterior() {
+  const loading = document.getElementById("loading-interior");
+  if (loading) loading.style.display = "block";
+
+  Papa.parse(CONFIG.CSV_INTERIOR, {
+    download: true,
+    header: false,          // <- MUDANÇA CRÍTICA
+    skipEmptyLines: true,
+    complete: function (res) {
+      const rows = (res.data || []).filter(r => Array.isArray(r) && r.join("").trim() !== "");
+
+      // tenta achar onde começam os dados:
+      // (pula linhas tipo título/cabeçalho vazio)
+      const startIndex = rows.findIndex(r => safeStr(r[IDX.nome]) || safeStr(r[IDX.inicio]) || safeStr(r[IDX.municipio]));
+      const dataRows = (startIndex >= 0) ? rows.slice(startIndex) : rows;
+
+      // remove possível linha de cabeçalho (se tiver "Início" / "Término" etc)
+      const first = dataRows[0] || [];
+      const firstJoined = first.join(" ").toLowerCase();
+      const hasHeaderWords =
+        firstJoined.includes("início") || firstJoined.includes("inicio") ||
+        firstJoined.includes("término") || firstJoined.includes("termino") ||
+        firstJoined.includes("município") || firstJoined.includes("municipio");
+
+      const finalRows = hasHeaderWords ? dataRows.slice(1) : dataRows;
+
+      dbInterior = finalRows
+        .map(r => ({
+          inicio: safeStr(r[IDX.inicio]),   // C
+            termino: safeStr(r[IDX.termino]), // D
+
+          nome: safeStr(r[IDX.nome]),
+          horaInicio: safeStr(r[IDX.horaInicio]),
+          horaTermino: safeStr(r[IDX.horaTermino]),
+          municipio: safeStr(r[IDX.municipio]),
+          publico: safeStr(r[IDX.publico]),
+          solicitante: safeStr(r[IDX.solicitante]),
+          contato: safeStr(r[IDX.contato]),
+        }))
+        .filter(ev => ev.nome || ev.inicio || ev.municipio);
+
+      // DEBUG rápido (veja no console)
+      console.log("Interior carregado:", dbInterior.length, dbInterior[0]);
+
+      renderInterior();
+
+      if (loading) loading.style.display = "none";
+    },
+    error: function (err) {
+      console.error("Erro CSV Interior:", err);
+      if (loading) loading.style.display = "none";
+      alert("Não foi possível carregar o CSV do Interior.");
+    }
+  });
+}
+
+function renderInterior() {
+  const tbody = document.getElementById("tbody-interior");
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+
+  dbInterior.forEach((ev, i) => {
+  const tr = document.createElement("tr");
+  tr.dataset.idx = i;
+  tr.setAttribute("data-event-date", ev.inicio || "");
+  tr.onclick = () => openModalInterior(i);
+
+  const publicoNum = parsePublico(ev.publico);
+  const isGrandePorte = publicoNum > 10000;
+
+  // 🟦 aplica classe azul na linha inteira
+  if (isGrandePorte) {
+    tr.classList.add("grande-porte");
+  }
+
+  tr.innerHTML = `
+    <td style="color:var(--text-muted)">${ev.inicio || "-"}</td>
+    <td style="color:var(--text-muted)">${ev.termino || "-"}</td>
+
+    <td style="position:relative; font-weight:800; color:var(--primary)">
+      ${isGrandePorte ? `<span class="badge-grande-porte-topo">Grande Porte</span>` : ""}
+      ${ev.nome || "-"}
+    </td>
+
+    <td>${ev.municipio || "-"}</td>
+    <td>${ev.publico || "-"}</td>
+    <td>${ev.solicitante || "-"}</td>
+    <td>${ev.contato || "-"}</td>
+  `;
+
+  tbody.appendChild(tr);
+});
+
+
+
+  filterInterior();
+}
+
+function filterInterior() {
+  const searchText = (document.getElementById("search-interior")?.value || "").toLowerCase();
+
+  const startStr = document.getElementById("date-start-interior")?.value || "";
+  const endStr   = document.getElementById("date-end-interior")?.value || "";
+
+  const filtroInicio = startStr ? startOfDay(new Date(startStr + "T00:00:00")) : null;
+  const filtroFim    = endStr   ? endOfDay(new Date(endStr + "T00:00:00"))     : null;
+
+  document.querySelectorAll("#tbody-interior tr").forEach(tr => {
+    const ev = dbInterior[tr.dataset.idx];
+
+    // filtro de texto
+    const rowText = (
+      `${ev.inicio} ${ev.termino} ${ev.nome} ${ev.municipio} ${ev.publico} ${ev.solicitante} ${ev.contato} ${ev.horaInicio} ${ev.horaTermino}`
+    ).toLowerCase();
+
+    let match = rowText.includes(searchText);
+
+    // filtro por intervalo de datas (interseção)
+    if (match && (filtroInicio || filtroFim)) {
+      const evInicioRaw = parseAnyDateToDate(ev.inicio);
+      const evFimRaw    = parseAnyDateToDate(ev.termino);
+
+      // normaliza: se não tiver término, assume término = início
+      const evInicio = evInicioRaw ? startOfDay(evInicioRaw) : null;
+      const evFim    = evFimRaw ? endOfDay(evFimRaw) : (evInicio ? endOfDay(evInicio) : null);
+
+      // se usuário filtrou por data e eu não consegui parsear, esconde
+      if (!evInicio || !evFim) {
+        match = false;
+      } else {
+        // se só preencheu início do filtro, considera fim = hoje 23:59
+        const fIni = filtroInicio || new Date(-8640000000000000); // min date
+        const fFim = filtroFim || new Date( 8640000000000000);    // max date
+
+        match = rangesIntersect(evInicio, evFim, fIni, fFim);
+      }
+    }
+
+    tr.style.display = match ? "" : "none";
+  });
+}
+
+
+function clearDateFiltersInterior() {
+  const a = document.getElementById("date-start-interior");
+  const b = document.getElementById("date-end-interior");
+  if (a) a.value = "";
+  if (b) b.value = "";
+  filterInterior();
+}
+
+function openModalInterior(idx) {
+  const ev = dbInterior[idx];
+    const publicoNum = parsePublico(ev.publico);
+    const isGrandePorte = publicoNum > 10000;
+  document.getElementById("m-proto").innerText = "EVENTOS - INTERIOR";
+  document.getElementById("m-name").innerText = ev.nome || "Evento";
+    
+
+  document.getElementById("m-content").innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; line-height:1.6; margin-bottom:25px; background:#f8fafc; padding:20px; border-radius:15px;">
+      <div>
+        <small style="color:var(--text-muted); text-transform:uppercase; font-size:10px; font-weight:800">Data e Horário</small><br>
+        <i class="far fa-calendar-alt" style="color:var(--accent)"></i> <b>${ev.inicio || "-"}</b> até <b>${ev.termino || "-"}</b><br>
+        <i class="far fa-clock" style="color:var(--accent)"></i> ${ev.horaInicio || "-"} às ${ev.horaTermino || "-"}
+      </div>
+
+      <div>
+        <small style="color:var(--text-muted); text-transform:uppercase; font-size:10px; font-weight:800">Município</small><br>
+        <i class="fas fa-location-dot" style="color:var(--accent)"></i> <b>${ev.municipio || "-"}</b>
+      </div>
+
+      <div>
+        <small style="color:var(--text-muted); text-transform:uppercase; font-size:10px; font-weight:800">Solicitante</small><br>
+        <i class="fas fa-user" style="color:var(--accent)"></i> ${ev.solicitante || "-"}
+      </div>
+
+      <div>
+        <small style="color:var(--text-muted); text-transform:uppercase; font-size:10px; font-weight:800">Contato</small><br>
+        <i class="fas fa-phone" style="color:var(--accent)"></i> ${ev.contato || "-"}
+      </div>
+
+      <div>
+        <small style="color:var(--text-muted); text-transform:uppercase; font-size:10px; font-weight:800">Público Estimado</small><br>
+        <i class="fas fa-users" style="color:var(--accent)"></i> ${ev.publico || "-"}
+      </div>
+    </div>
+  `;
+
+  document.getElementById("modal").style.display = "flex";
+}
+function parseAnyDateToDate(dateStr) {
+  const s0 = (dateStr || "").toString().trim();
+  if (!s0) return null;
+
+  // tenta extrair dd/mm/aaaa em qualquer lugar do texto
+  let m = s0.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) {
+    const dd = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    const yyyy = parseInt(m[3], 10);
+    const d = new Date(yyyy, mm - 1, dd);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // tenta extrair aaaa-mm-dd em qualquer lugar do texto
+  m = s0.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) {
+    const yyyy = parseInt(m[1], 10);
+    const mm = parseInt(m[2], 10);
+    const dd = parseInt(m[3], 10);
+    const d = new Date(yyyy, mm - 1, dd);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // fallback final
+  const d2 = new Date(s0);
+  return isNaN(d2.getTime()) ? null : d2;
+}
+
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
+
+function endOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+}
+
+// retorna true se [aStart,aEnd] intersecta [bStart,bEnd]
+function rangesIntersect(aStart, aEnd, bStart, bEnd) {
+  return aEnd >= bStart && aStart <= bEnd;
+}
+function parsePublico(valor) {
+  if (!valor) return 0;
+
+  // remove tudo que não for número
+  const n = valor
+    .toString()
+    .replace(/\./g, "")
+    .replace(/,/g, "")
+    .match(/\d+/);
+
+  return n ? parseInt(n[0], 10) : 0;
 }
 
     </script>
