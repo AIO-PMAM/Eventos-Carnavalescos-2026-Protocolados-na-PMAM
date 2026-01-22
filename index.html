@@ -420,7 +420,31 @@ tr.card-integrado:hover {
             background: #fff8e1;
             border-color: var(--accent);
             cursor: pointer;
+                }
+                /* ===== PRIORIDADE: quando tiver evento e também tiver GRANDE PORTE ===== */
+        .day-cell.has-events.has-gp-events {
+        background: #e0f2fe;        /* azul claro */
+        border-color: #0284c7;      /* azul institucional */
         }
+
+        .day-cell.has-events.has-gp-events:hover{
+        background: #bae6fd;        /* azul um pouco mais forte no hover */
+        }
+
+        .day-cell.has-events.has-gp-events .event-count {
+        background: var(--primary);
+        color: #fff;
+        }
+
+        /* mantém o ALERTA vermelho acima de tudo */
+        .day-cell.status-alert.has-gp-events {
+        background: var(--danger-light) !important;
+        border-color: var(--danger) !important;
+        }
+        .day-cell.status-alert.has-gp-events .event-count {
+        background: var(--danger) !important;
+        }
+
         .day-cell.has-events:hover {
             transform: scale(1.05);
             background: var(--accent-light);
@@ -2415,10 +2439,7 @@ function parsePublico(valor) {
   
 function renderCalendarInterior() {
   const container = document.getElementById('calendar-render-interior');
-  if (!container) {
-    console.error("calendar-render-interior não encontrado no HTML.");
-    return;
-  }
+  if (!container) return;
 
   container.innerHTML = '';
 
@@ -2427,15 +2448,15 @@ function renderCalendarInterior() {
     return;
   }
 
-  // Meses fixos (igual capital)
   const months = [
     { name: 'Janeiro', month: 0, year: 2026 },
     { name: 'Fevereiro', month: 1, year: 2026 },
     { name: 'Março', month: 2, year: 2026 }
   ];
 
-  // Conta eventos por dia considerando intervalo início..término
-  const counts = {}; // key: "DD/MM/YYYY" -> count
+  // Conta por dia e marca se tem GP
+  const counts = {}; // "DD/MM/YYYY" -> total
+  const gpDays = {}; // "DD/MM/YYYY" -> true
 
   (dbInterior || []).forEach(ev => {
     const iniRaw = parseAnyDateToDate(ev.inicio);
@@ -2445,6 +2466,8 @@ function renderCalendarInterior() {
     const fim = fimRaw ? endOfDay(fimRaw) : (ini ? endOfDay(ini) : null);
     if (!ini || !fim) return;
 
+    const isGP = parsePublico(ev.publico) >= 10000;
+
     let cur = startOfDay(ini);
     const last = startOfDay(fim);
 
@@ -2452,12 +2475,14 @@ function renderCalendarInterior() {
     while (cur <= last && guard < 500) {
       const key = fmtBR(cur); // "DD/MM/YYYY"
       counts[key] = (counts[key] || 0) + 1;
+      if (isGP) gpDays[key] = true;
+
       cur = addDays(cur, 1);
       guard++;
     }
   });
 
-  // Renderiza os 3 meses
+  // Renderiza os meses
   months.forEach(mInfo => {
     const monthDiv = document.createElement('div');
     monthDiv.className = 'month-card';
@@ -2481,6 +2506,9 @@ function renderCalendarInterior() {
       if (count > 12) statusClass = 'has-events status-alert';
       else if (count > 0) statusClass = 'has-events';
 
+      // ✅ destaque Grande Porte
+      if (gpDays[key]) statusClass += ' has-gp-events';
+
       const badge = count > 0 ? `<span class="event-count">${count}</span>` : '';
 
       html += `
@@ -2496,9 +2524,8 @@ function renderCalendarInterior() {
     monthDiv.innerHTML = html;
     container.appendChild(monthDiv);
   });
-
-  console.log("Calendário Interior (Jan/Fev/Mar) renderizado:", dbInterior.length, "eventos");
 }
+
 function toggleFiltroGrandePorte() {
   filtroGrandePorteAtivo = !filtroGrandePorteAtivo;
 
