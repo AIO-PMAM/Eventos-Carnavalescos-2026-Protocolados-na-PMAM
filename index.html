@@ -1002,11 +1002,16 @@ tr.grande-porte td:last-child {
     <small>Total de Eventos</small>
     <h2 id="kpi-interior-total">0</h2>
   </div>
+  
 <!-- ===== RESUMO POR MUNICÍPIO ===== -->
 
   <div class="kpi-card" id="kpi-card-grande-porte" onclick="toggleFiltroGrandePorte()" style="cursor:pointer;">
   <small>Grande Porte</small>
   <h2 id="kpi-interior-grande">0</h2>
+</div>
+<div class="kpi-card" id="kpi-card-municipios">
+  <small>Municípios com eventos</small>
+  <h2 id="kpi-interior-municipios">0</h2>
 </div>
  <div id="municipios-resumo" class="muni-grid"></div>
  <div id="municipios-actions" style="margin-top:8px;">
@@ -1028,6 +1033,7 @@ tr.grande-porte td:last-child {
     <i class="fas fa-eraser"></i> Limpar seleção
   </button>
 </div>
+
 
 </div>
 
@@ -2250,6 +2256,20 @@ function filterInterior() {
   // ===== ATUALIZA KPIs DO INTERIOR =====
   let totalVisiveis = 0;
   let totalGrande = 0;
+  // ===== KPI: MUNICÍPIOS COM EVENTOS (únicos, visíveis) =====
+const municipiosSet = new Set();
+
+rows.forEach(tr => {
+  if (tr.style.display === "none") return;
+
+  const ev = dbInterior[Number(tr.dataset.idx)] || {};
+  const muni = (ev.municipio || "Não informado").trim() || "Não informado";
+  municipiosSet.add(muni);
+});
+
+const elMuni = document.getElementById("kpi-interior-municipios");
+if (elMuni) elMuni.innerText = municipiosSet.size;
+
 
   rows.forEach(tr => {
     if (tr.style.display !== "none") {
