@@ -394,6 +394,28 @@ tr.card-integrado:hover {
             position: relative;
             transition: transform 0.2s;
         }
+                /* Dia do calendário do Interior com evento de GRANDE PORTE */
+        .day-cell.has-gp-events {
+        background: #e0f2fe;              /* azul claro */
+        border-color: #0284c7;            /* azul institucional */
+        }
+
+        .day-cell.has-gp-events .event-count {
+        background: var(--primary);       /* azul marinho do tema */
+        color: #fff;
+        }
+
+        /* mantém o ALERTA vermelho acima de tudo */
+        .day-cell.status-alert.has-gp-events {
+        background: var(--danger-light) !important;
+        border-color: var(--danger) !important;
+        }
+
+        .day-cell.status-alert.has-gp-events .event-count {
+        background: var(--danger) !important;
+        }
+
+
         .day-cell.has-events {
             background: #fff8e1;
             border-color: var(--accent);
@@ -664,7 +686,85 @@ tr.grande-porte td:last-child {
   box-shadow: 0 4px 8px rgba(2, 132, 199, 0.35);
   white-space: nowrap;
 }
+/* ===== RESUMO COMPACTO POR MUNICÍPIO ===== */
+.muni-grid{
+  display:flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 18px;
+}
 
+.muni-card{
+  display:inline-flex;
+  align-items:center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: .3px;
+}
+
+.muni-card.has-gp{
+  background: #e0f2fe;
+  color: #0c4a6e;
+  border: 1px solid #0284c7;
+}
+
+.muni-count{
+  background: var(--primary);   /* azul marinho do tema */
+  color: #ffffff;               /* número branco */
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  min-width: 22px;
+  text-align: center;
+}
+
+.muni-card.has-gp .muni-count{
+  box-shadow: 0 0 0 2px #ffffff, 0 0 0 3px var(--primary);
+}
+
+
+
+.muni-badge-gp{
+  background: #0284c7;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+/* KPIs do Interior: menos espaço embaixo */
+#kpi-interior-grid{
+  margin-bottom: 8px !important;
+}
+
+/* Lista de municípios bem colada aos KPIs */
+#municipios-resumo{
+  margin-top: 0 !important;
+  margin-bottom: 14px;
+}
+
+/* Remove qualquer margem extra herdada */
+#view-interior .muni-grid{
+  padding-top: 0;
+}
+#municipios-resumo{
+  justify-content: flex-start;
+}
+
+.muni-card.active-muni{
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.muni-card{ cursor: pointer; }
 
     </style>
 </head>
@@ -713,6 +813,25 @@ tr.grande-porte td:last-child {
     <i class="fas fa-right-from-bracket"></i> <span>Sair</span>
   </div>
       
+  <!-- MODAL -->
+<div id="modal" onclick="closeModal()">
+  <div class="modal-body" onclick="event.stopPropagation()">
+    <div style="padding: 28px 32px 0 32px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div>
+          <div id="m-proto" style="font-size:11px; font-weight:900; color:var(--accent); letter-spacing:1px; text-transform:uppercase;"></div>
+          <div id="m-name" style="margin-top:6px; font-size:20px; font-weight:900; color:var(--primary);"></div>
+        </div>
+        <button onclick="closeModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#64748b;">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <div id="m-content" style="padding: 18px 32px 32px 32px;"></div>
+  </div>
+</div>
+
     </aside>
 
     <main id="main-view" style="display:none;">
@@ -853,6 +972,40 @@ tr.grande-porte td:last-child {
       </button>
     </div>
   </div>
+    <!-- ===== KPIs – EVENTOS INTERIOR ===== -->
+<div class="kpi-grid" id="kpi-interior-grid" style="margin-bottom:30px;">
+  <div class="kpi-card highlight" onclick="resetFiltroGrandePorte(); filterInterior();" style="cursor:pointer;">
+    <small>Total de Eventos</small>
+    <h2 id="kpi-interior-total">0</h2>
+  </div>
+<!-- ===== RESUMO POR MUNICÍPIO ===== -->
+
+  <div class="kpi-card" id="kpi-card-grande-porte" onclick="toggleFiltroGrandePorte()" style="cursor:pointer;">
+  <small>Grande Porte</small>
+  <h2 id="kpi-interior-grande">0</h2>
+</div>
+ <div id="municipios-resumo" class="muni-grid"></div>
+ <div id="municipios-actions" style="margin-top:8px;">
+  <button onclick="limparFiltroMunicipio()"
+    style="
+      background: none;
+      border: 1px solid rgba(0,0,0,0.10);
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    ">
+    <i class="fas fa-eraser"></i> Limpar seleção
+  </button>
+</div>
+
+</div>
 
   <div class="panel">
     <div class="panel-top">
@@ -896,9 +1049,6 @@ tr.grande-porte td:last-child {
     </div>
   </div>
 </div>
-    <div id="view-interior" style="display:none;">
-  ...
-</div>
 
 <div id="view-calendar-interior" style="display:none;">
   <div class="header">
@@ -928,6 +1078,8 @@ tr.grande-porte td:last-child {
         let usuariosPermitidos = [];
         let filtroLocalAtivo = null;
         let dbInterior = [];
+        let filtroGrandePorteAtivo = false;
+        let filtroMunicipioAtivo = null;
 
         function filterByLocal(tipo) {
   // toggle: clicou no mesmo -> limpa o filtro
@@ -1112,28 +1264,29 @@ if (envolvidosRaw) {
 
 
                 tr.innerHTML = `
-                    <td style="font-weight:700; color:var(--accent)">#${r[1]}</td>
-                    <td style="color:var(--text-muted)">${r[2]}</td>
-                    <td style="position:relative;">
+  <td style="font-weight:700; color:var(--accent)">#${r[1]}</td>
+  <td style="color:var(--text-muted)">${r[2]}</td>
+
+  <td style="position:relative;">
     <span class="badge-tipo ${badgeClass}">
-        ${isIntegrado ? 'Integrado' : 'Centralizado'}
+      ${isIntegrado ? 'Integrado' : 'Centralizado'}
     </span>
+
     <div style="font-weight:700; color:var(--primary); margin-top:12px;">
-    ${r[3]}
-</div>
+      ${r[3]}
+    </div>
 
-<div style="margin-top:4px;">
-    ${envolvidosHTML}
-</div>
+    <div style="margin-top:4px;">
+      ${envolvidosHTML}
+    </div>
 
+    ${aioHTML}
+  </td>
 
-${aioHTML}
-
-
-                    <td>${r[6]}</td>
-                    <td><span class="status-badge ${isOk ? 'status-ok' : 'status-wait'}">${r[10] || 'PENDENTE'}</span></td>
-                `;
-                tbody.appendChild(tr);
+  <td>${r[6]}</td>
+  <td><span class="status-badge ${isOk ? 'status-ok' : 'status-wait'}">${r[10] || 'PENDENTE'}</span></td>
+`;
+             tbody.appendChild(tr);
             });
 
             filter();
@@ -1720,50 +1873,7 @@ doc.setTextColor(40, 40, 40);
 showToast("✅ Sua exportação (PDF) foi baixada.");
 
 }
-function exportarExcel() {
 
-    const linhasVisiveis = Array.from(document.querySelectorAll("#tbody tr"))
-        .filter(tr => tr.style.display !== "none");
-
-    if (linhasVisiveis.length === 0) {
-    showToast("⚠️ Nenhum evento para exportar.");
-    return;
-}
-    const colunas = [
-        "Data do Protocolo",
-        "Data do Evento",
-        "Horário",
-        "Evento",
-        "Endereço / Zona",
-        "Responsável",
-        "Contato",
-        "Público Estimado",
-        "Ofício de Solicitação"
-    ];
-
-    const dados = [];
-    dados.push(colunas);
-
-    linhasVisiveis.forEach(tr => {
-        const r = db[tr.dataset.idx];
-        dados.push([
-            r[1] || "",
-            r[2] || "",
-            `${r[4] || ""} às ${r[5] || ""}`,
-            r[3] || "",
-            r[6] || "",
-            r[8] || "",
-            r[9] || "",
-            r[7] || "",
-            r[10] || ""
-        ]);
-    });
-
-    const ws = XLSX.utils.aoa_to_sheet(dados);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Eventos");
-    XLSX.writeFile(wb, "Eventos_Carnaval_2026.xlsx");
-}
 function exportarExcel() {
 
     const linhasVisiveis = Array.from(document.querySelectorAll("#tbody tr"))
@@ -2023,39 +2133,38 @@ function renderInterior() {
   tbody.innerHTML = "";
 
   dbInterior.forEach((ev, i) => {
-  const tr = document.createElement("tr");
-  tr.dataset.idx = i;
-  tr.setAttribute("data-event-date", ev.inicio || "");
-  tr.onclick = () => openModalInterior(i);
+    const tr = document.createElement("tr");
+    tr.dataset.idx = String(i);
+    tr.setAttribute("data-event-date", ev.inicio || "");
+    tr.onclick = () => openModalInterior(i);
 
-  const publicoNum = parsePublico(ev.publico);
-  const isGrandePorte = publicoNum > 10000;
+    const publicoNum = parsePublico(ev.publico);
+    const isGrandePorte = publicoNum >= 10000; // ✅ aqui (>=)
 
-  // 🟦 aplica classe azul na linha inteira
-  if (isGrandePorte) {
-    tr.classList.add("grande-porte");
-  }
+    // ✅ marca SEMPRE (pra filtro funcionar)
+    tr.dataset.grandePorte = isGrandePorte ? "1" : "0";
 
-  tr.innerHTML = `
-    <td style="color:var(--text-muted)">${ev.inicio || "-"}</td>
-    <td style="color:var(--text-muted)">${ev.termino || "-"}</td>
+    if (isGrandePorte) tr.classList.add("grande-porte");
 
-    <td style="position:relative; font-weight:800; color:var(--primary)">
-      ${isGrandePorte ? `<span class="badge-grande-porte-topo">Grande Porte</span>` : ""}
-      ${ev.nome || "-"}
-    </td>
+    tr.innerHTML = `
+      <td style="color:var(--text-muted)">${ev.inicio || "-"}</td>
+      <td style="color:var(--text-muted)">${ev.termino || "-"}</td>
 
-    <td>${ev.municipio || "-"}</td>
-    <td>${ev.publico || "-"}</td>
-    <td>${ev.solicitante || "-"}</td>
-    <td>${ev.contato || "-"}</td>
-  `;
+      <td style="position:relative; font-weight:800; color:var(--primary)">
+        ${isGrandePorte ? `<span class="badge-grande-porte-topo">Grande Porte</span>` : ""}
+        ${ev.nome || "-"}
+      </td>
 
-  tbody.appendChild(tr);
-});
+      <td>${ev.municipio || "-"}</td>
+      <td>${ev.publico || "-"}</td>
+      <td>${ev.solicitante || "-"}</td>
+      <td>${ev.contato || "-"}</td>
+    `;
 
+    tbody.appendChild(tr);
+  });
 
-
+  // ✅ aplica filtros e atualiza KPIs
   filterInterior();
 }
 
@@ -2068,40 +2177,75 @@ function filterInterior() {
   const filtroInicio = startStr ? startOfDay(new Date(startStr + "T00:00:00")) : null;
   const filtroFim    = endStr   ? endOfDay(new Date(endStr + "T00:00:00"))     : null;
 
-  document.querySelectorAll("#tbody-interior tr").forEach(tr => {
-    const ev = dbInterior[tr.dataset.idx];
+  const rows = Array.from(document.querySelectorAll("#tbody-interior tr"));
 
-    // filtro de texto
+  // ✅ DEBUG: confirma se tem linhas marcadas como grande porte
+  const marcadas = rows.filter(r => r.dataset.grandePorte === "1").length;
+  console.log("Filtro Grande Porte ativo?", filtroGrandePorteAtivo, "| Linhas marcadas GP:", marcadas);
+
+  rows.forEach(tr => {
+    const ev = dbInterior[Number(tr.dataset.idx)];
+
     const rowText = (
       `${ev.inicio} ${ev.termino} ${ev.nome} ${ev.municipio} ${ev.publico} ${ev.solicitante} ${ev.contato} ${ev.horaInicio} ${ev.horaTermino}`
     ).toLowerCase();
 
     let match = rowText.includes(searchText);
+    // ✅ filtro por município (chips)
+    if (match && filtroMunicipioAtivo) {
+    const muniRow = (ev.municipio || "").trim();
+    if (muniRow !== filtroMunicipioAtivo) match = false;
+    }
+
+    // ✅ AQUI: filtro Grande Porte
+    if (match && filtroGrandePorteAtivo) {
+      const isGrande = tr.dataset.grandePorte === "1";
+      if (!isGrande) match = false;
+    }
 
     // filtro por intervalo de datas (interseção)
     if (match && (filtroInicio || filtroFim)) {
       const evInicioRaw = parseAnyDateToDate(ev.inicio);
       const evFimRaw    = parseAnyDateToDate(ev.termino);
 
-      // normaliza: se não tiver término, assume término = início
       const evInicio = evInicioRaw ? startOfDay(evInicioRaw) : null;
       const evFim    = evFimRaw ? endOfDay(evFimRaw) : (evInicio ? endOfDay(evInicio) : null);
 
-      // se usuário filtrou por data e eu não consegui parsear, esconde
       if (!evInicio || !evFim) {
         match = false;
       } else {
-        // se só preencheu início do filtro, considera fim = hoje 23:59
-        const fIni = filtroInicio || new Date(-8640000000000000); // min date
-        const fFim = filtroFim || new Date( 8640000000000000);    // max date
-
+        const fIni = filtroInicio || new Date(-8640000000000000);
+        const fFim = filtroFim || new Date( 8640000000000000);
         match = rangesIntersect(evInicio, evFim, fIni, fFim);
       }
     }
 
     tr.style.display = match ? "" : "none";
   });
+
+  // ===== ATUALIZA KPIs DO INTERIOR =====
+  let totalVisiveis = 0;
+  let totalGrande = 0;
+
+  rows.forEach(tr => {
+    if (tr.style.display !== "none") {
+      totalVisiveis++;
+      if (tr.dataset.grandePorte === "1") totalGrande++;
+    }
+  });
+
+  const elTotal = document.getElementById("kpi-interior-total");
+  const elGrande = document.getElementById("kpi-interior-grande");
+
+  if (elTotal) elTotal.innerText = totalVisiveis;
+  if (elGrande) elGrande.innerText = totalGrande;
+  updateMunicipiosResumo();
+  const actions = document.getElementById("municipios-actions");
+if (actions) actions.style.display = filtroMunicipioAtivo ? "block" : "none";
+
+
 }
+
 
 
 function clearDateFiltersInterior() {
@@ -2115,7 +2259,8 @@ function clearDateFiltersInterior() {
 function openModalInterior(idx) {
   const ev = dbInterior[idx];
     const publicoNum = parsePublico(ev.publico);
-    const isGrandePorte = publicoNum > 10000;
+    const isGrandePorte = publicoNum >= 10000;
+
   document.getElementById("m-proto").innerText = "EVENTOS - INTERIOR";
   document.getElementById("m-name").innerText = ev.nome || "Evento";
     
@@ -2246,19 +2391,28 @@ function ensureInteriorLoadedThenCalendar() {
   }, 100);
 }
 
-
 function parsePublico(valor) {
   if (!valor) return 0;
 
-  // remove tudo que não for número
-  const n = valor
-    .toString()
-    .replace(/\./g, "")
-    .replace(/,/g, "")
-    .match(/\d+/);
+  const raw = valor.toString().trim().toLowerCase();
 
-  return n ? parseInt(n[0], 10) : 0;
+  // pega o primeiro bloco numérico (10.000 / 10,000 / 10000 / 12)
+  const numStr = (raw.match(/(\d[\d\.\,]*)/) || [null, ""])[1];
+  if (!numStr) return 0;
+
+  const base = parseInt(numStr.replace(/[^\d]/g, ""), 10) || 0;
+
+  // "10 mil" => base=10 -> 10000
+  if (raw.includes("mil") && base > 0 && base < 1000) return base * 1000;
+
+  // "12k" => base=12 -> 12000
+  if (/\bk\b/.test(raw) && base > 0 && base < 1000) return base * 1000;
+
+  return base;
 }
+
+  // remove tudo que não for número
+  
 function renderCalendarInterior() {
   const container = document.getElementById('calendar-render-interior');
   if (!container) {
@@ -2344,6 +2498,84 @@ function renderCalendarInterior() {
   });
 
   console.log("Calendário Interior (Jan/Fev/Mar) renderizado:", dbInterior.length, "eventos");
+}
+function toggleFiltroGrandePorte() {
+  filtroGrandePorteAtivo = !filtroGrandePorteAtivo;
+
+  console.log("CLIQUE KPIs -> filtroGrandePorteAtivo =", filtroGrandePorteAtivo);
+
+  const card = document.getElementById("kpi-card-grande-porte");
+  if (card) card.classList.toggle("active-filter", filtroGrandePorteAtivo);
+
+  filterInterior();
+}
+
+function resetFiltroGrandePorte() {
+  filtroGrandePorteAtivo = false;
+  const card = document.getElementById("kpi-card-grande-porte");
+  if (card) card.classList.remove("active-filter");
+}
+function updateMunicipiosResumo() {
+  const box = document.getElementById("municipios-resumo");
+  if (!box) return;
+
+  // agrega somente eventos VISÍVEIS (respeita filtros)
+  const map = {}; // municipio -> { total, hasGP }
+
+  document.querySelectorAll("#tbody-interior tr").forEach(tr => {
+    if (tr.style.display === "none") return;
+
+    const ev = dbInterior[tr.dataset.idx] || {};
+    const muni = (ev.municipio || "Não informado").trim() || "Não informado";
+
+    if (!map[muni]) map[muni] = { total: 0, hasGP: false };
+
+    map[muni].total += 1;
+
+    // grande porte vem do dataset que você já seta no renderInterior()
+    if (tr.dataset.grandePorte === "1") map[muni].hasGP = true;
+  });
+
+  const lista = Object.entries(map)
+    .map(([municipio, info]) => ({ municipio, ...info }))
+    .sort((a, b) => {
+      // ordena: maior total primeiro; em empate, A-Z
+      if (b.total !== a.total) return b.total - a.total;
+      return a.municipio.localeCompare(b.municipio, "pt-BR");
+    });
+
+  if (lista.length === 0) {
+    box.innerHTML = `<div style="color:var(--text-muted); font-weight:700; padding:10px 2px;">
+      Nenhum município para exibir com os filtros atuais.
+    </div>`;
+    return;
+  }
+
+ box.innerHTML = lista.map(item => `
+  <div class="muni-card ${item.hasGP ? "has-gp" : ""} ${filtroMunicipioAtivo === item.municipio ? "active-muni" : ""}"
+       role="button"
+       title="Filtrar por ${item.municipio}"
+       onclick="toggleFiltroMunicipio('${item.municipio.replace(/'/g, "\\'")}')">
+
+
+    ${item.municipio}
+    <span class="muni-count">${item.total}</span>
+  </div>
+`).join("");
+
+}
+function toggleFiltroMunicipio(muni) {
+  const m = (muni || "").trim();
+  filtroMunicipioAtivo = (filtroMunicipioAtivo === m) ? null : m;
+
+  filterInterior();
+  updateMunicipiosResumo(); // ✅ garante o highlight do chip
+}
+
+function limparFiltroMunicipio() {
+  filtroMunicipioAtivo = null;
+  filterInterior();          // reaplica filtros
+  updateMunicipiosResumo();  // atualiza o destaque do chip
 }
 
     </script>
