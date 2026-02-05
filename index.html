@@ -1682,14 +1682,14 @@ function corPorQuantidade(qtd) {
               CPM:  (ev[16] || "").trim(),
               CPAMB:(ev[17] || "").trim(),
               CPE:  (ev[18] || "").trim(),
-              DAL:  (ev[19] || "").trim() // ✅ novo
+              DAL:  (ev[19] || "").trim()
             };
 
             const comandos = [
               { id: 'CPM', nome: 'CPM - Comando de Policiamento Metropolitano' },
               { id: 'CPAMB', nome: 'CPAMB - Comando de Policiamento Ambiental' },
               { id: 'CPE', nome: 'CPE - Comando de Policiamento Especializado' },
-              { id: 'DAL', nome: 'DAL - Diretoria/Depto de Apoio Logístico' }
+              { id: 'DAL', nome: 'DAL - Diretoria de Apoio Logístico' }
             ];
             let botoesEnvolvidosHTML = '';
             comandos.forEach(cmd => {
