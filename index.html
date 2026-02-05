@@ -995,6 +995,33 @@ tr.grande-porte td:last-child {
   #modal #m-name{ font-size: 18px !important; }
   #modal #m-proto{ font-size: 10px !important; }
 }
+/* ===== EVENTO CANCELADO ===== */
+tr.event-cancelado{
+  background: var(--danger-light) !important;
+  border-left: 6px solid var(--danger);
+}
+
+tr.event-cancelado:hover{
+  background: #fecaca !important;
+}
+
+tr.event-cancelado td{
+  border-bottom-color: rgba(239,68,68,.25);
+}
+
+.badge-cancelado{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 9px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--danger);
+  border-radius: 8px;
+  letter-spacing: .5px;
+}
 
     </style>
 </head>
@@ -1449,56 +1476,77 @@ function filterByDate(dateStr) {
                 const badgeClass = isIntegrado ? 'bg-integrada' : 'bg-centralizada';
                 
                const aioRaw = (r[19] || "").trim();
-let aioHTML = '';
+const aioUpper = (aioRaw || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-if (aioRaw) {
-    const temLink = aioRaw.toLowerCase().includes('http');
-    const link = temLink ? aioRaw.match(/https?:\/\/\S+/)?.[0] : null;
-    const texto = aioRaw.replace(/https?:\/\/\S+/, '').trim();
+// ✅ se a coluna Providências AIO estiver "CANCELADO"
+const isCancelado = (aioUpper === "CANCELADO");
 
-    aioHTML = `
-        <div class="badge-aio">
-            ${texto || 'Plano AIO'}
-            ${link ? `
-                <a href="${encodeURI(link)}"
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   onclick="event.stopPropagation()"
-                   style="background:#0284c7; color:white; padding:3px 8px; border-radius:6px; font-size:9px; font-weight:800; text-decoration:none;">
-                    Abrir
-                </a>
-            ` : ''}
-        </div>
-    `;
+// se cancelado, pinta a linha
+if (isCancelado) tr.classList.add("event-cancelado");
+
+// Tag cancelado (vai aparecer junto dos badges)
+const cancelHTML = isCancelado
+  ? `<span class="badge-cancelado" title="Evento cancelado"><i class="fas fa-ban"></i> Evento Cancelado</span>`
+  : "";
+
+let aioHTML = "";
+
+// ✅ Só monta o Plano AIO se NÃO estiver cancelado
+if (aioRaw && !isCancelado) {
+  const temLink = aioRaw.toLowerCase().includes("http");
+  const link = temLink ? aioRaw.match(/https?:\/\/\S+/)?.[0] : null;
+  const texto = aioRaw.replace(/https?:\/\/\S+/, "").trim();
+
+  aioHTML = `
+    <div class="badge-aio">
+      ${texto || "Plano AIO"}
+      ${link ? `
+        <a href="${encodeURI(link)}"
+           target="_blank"
+           rel="noopener noreferrer"
+           onclick="event.stopPropagation()"
+           style="background:#0284c7; color:white; padding:3px 8px; border-radius:6px; font-size:9px; font-weight:800; text-decoration:none;">
+          Abrir
+        </a>
+      ` : ""}
+    </div>
+  `;
 }
+
 
 const envolvidosRaw = (r[12] || "").toUpperCase();
 
 const linksDesdobramento = {
-    CPM: (r[16] || "").toLowerCase(),
-    CPAMB: (r[17] || "").toLowerCase(),
-    CPE: (r[18] || "").toLowerCase()
+  CPM: (r[16] || "").toLowerCase(),
+  CPAMB: (r[17] || "").toLowerCase(),
+  CPE: (r[18] || "").toLowerCase()
 };
+
+// ✅ CPM com link = CPM "verde"
+const cpmOk = (linksDesdobramento.CPM || "").includes("http");
 
 let envolvidosHTML = '';
 
 if (envolvidosRaw) {
-    envolvidosHTML = envolvidosRaw
-        .split(',')
-        .map(ev => {
-            const envolvido = ev.trim();
+  envolvidosHTML = envolvidosRaw
+    .split(',')
+    .map(ev => {
+      const envolvido = ev.trim();
 
-            const temDesdobramento =
-                linksDesdobramento[envolvido] &&
-                linksDesdobramento[envolvido].includes('http');
+      let temDesdobramento =
+        (linksDesdobramento[envolvido] || "").includes("http");
 
-            return `<span class="envolvido ${temDesdobramento ? 'envolvido-ok' : 'envolvido-pendente'}">
-                ${envolvido}
-            </span>`;
-        })
-        .join(' ');
+      if (cpmOk && (envolvido === "CFAP" || envolvido === "APM")) {
+        temDesdobramento = true;
+      }
+
+      return `<span class="envolvido ${temDesdobramento ? 'envolvido-ok' : 'envolvido-pendente'}">
+        ${envolvido}
+      </span>`;
+    })
+    .join(' ');
 } else {
-    envolvidosHTML = `<span class="envolvido envolvido-pendente">Sem envolvidos</span>`;
+  envolvidosHTML = `<span class="envolvido envolvido-pendente">Sem envolvidos</span>`;
 }
 
 
@@ -1508,20 +1556,24 @@ if (envolvidosRaw) {
   <td style="color:var(--text-muted)">${r[2]}</td>
 
   <td style="position:relative;">
+  <div class="badge-container">
     <span class="badge-tipo ${badgeClass}">
       ${isIntegrado ? 'Integrado' : 'Centralizado'}
     </span>
+    ${cancelHTML}
+  </div>
 
-    <div style="font-weight:700; color:var(--primary); margin-top:12px;">
-      ${r[3]}
-    </div>
+  <div style="font-weight:700; color:var(--primary); margin-top:12px;">
+    ${r[3]}
+  </div>
 
-    <div style="margin-top:4px;">
-      ${envolvidosHTML}
-    </div>
+  <div style="margin-top:4px;">
+    ${envolvidosHTML}
+  </div>
 
-    ${aioHTML}
-  </td>
+  ${aioHTML}
+</td>
+
 
   <td>${r[6]}</td>
   <td><span class="status-badge ${isOk ? 'status-ok' : 'status-wait'}">${r[10] || 'PENDENTE'}</span></td>
