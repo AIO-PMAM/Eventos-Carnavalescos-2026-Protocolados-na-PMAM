@@ -1475,7 +1475,7 @@ function filterByDate(dateStr) {
                 // Define a classe da faixa superior esquerda
                 const badgeClass = isIntegrado ? 'bg-integrada' : 'bg-centralizada';
                 
-               const aioRaw = (r[19] || "").trim();
+               const aioRaw = (r[20] || "").trim();
 const aioUpper = (aioRaw || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 // ✅ se a coluna Providências AIO estiver "CANCELADO"
@@ -1517,10 +1517,12 @@ if (aioRaw && !isCancelado) {
 const envolvidosRaw = (r[12] || "").toUpperCase();
 
 const linksDesdobramento = {
-  CPM: (r[16] || "").toLowerCase(),
-  CPAMB: (r[17] || "").toLowerCase(),
-  CPE: (r[18] || "").toLowerCase()
+  CPM:  (r[16] || "").toLowerCase(),
+  CPAMB:(r[17] || "").toLowerCase(),
+  CPE:  (r[18] || "").toLowerCase(),
+  DAL:  (r[19] || "").toLowerCase()
 };
+
 
 // ✅ CPM com link = CPM "verde"
 const cpmOk = (linksDesdobramento.CPM || "").includes("http");
@@ -1657,9 +1659,9 @@ function corPorQuantidade(qtd) {
             const ev = db[idx];
             let sigedRaw = (ev[15] || "").trim().replace(/\s+/g, '');
 
-if (sigedRaw && !sigedRaw.startsWith('http')) {
-    sigedRaw = 'https://' + sigedRaw;
-}
+            if (sigedRaw && !sigedRaw.startsWith('http')) {
+                sigedRaw = 'https://' + sigedRaw;
+            }
 
             let sigedContent = '';
             if (sigedRaw.toLowerCase().includes('http')) {
@@ -1677,18 +1679,19 @@ if (sigedRaw && !sigedRaw.startsWith('http')) {
 
             const textoEnvolvidos = (ev[12] || "").toUpperCase();
             const links = {
-                CPM: (ev[16] || "").trim(),
-                CPAMB: (ev[17] || "").trim(),
-                CPE: (ev[18] || "").trim()
+              CPM:  (ev[16] || "").trim(),
+              CPAMB:(ev[17] || "").trim(),
+              CPE:  (ev[18] || "").trim(),
+              DAL:  (ev[19] || "").trim() // ✅ novo
             };
 
-            let botoesEnvolvidosHTML = '';
             const comandos = [
-                { id: 'CPM', nome: 'CPM - Comando de Policiamento Metropolitano' },
-                { id: 'CPAMB', nome: 'CPAMB - Comando de Policiamento Ambiental' },
-                { id: 'CPE', nome: 'CPE - Comando de Policiamento Especializado' }
+              { id: 'CPM', nome: 'CPM - Comando de Policiamento Metropolitano' },
+              { id: 'CPAMB', nome: 'CPAMB - Comando de Policiamento Ambiental' },
+              { id: 'CPE', nome: 'CPE - Comando de Policiamento Especializado' },
+              { id: 'DAL', nome: 'DAL - Diretoria/Depto de Apoio Logístico' }
             ];
-
+            let botoesEnvolvidosHTML = '';
             comandos.forEach(cmd => {
                 if (textoEnvolvidos.includes(cmd.id) && links[cmd.id].toLowerCase().includes('http')) {
                     botoesEnvolvidosHTML += `
