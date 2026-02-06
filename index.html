@@ -1440,19 +1440,28 @@ function filterByDate(dateStr) {
 
 
         function fetchData() {
-            document.getElementById('loading').style.display = 'block';
-            Papa.parse(CONFIG.CSV, {
-                download: true,
-                header: false,
-                complete: function(res) {
-                    const data = res.data;
-                    const hIdx = data.findIndex(r => r.join('').includes("DATAEVENTO"));
-                    db = data.slice(hIdx + 6).filter(r => r[1] && r[1].trim() !== "");
-                    render();
-                    renderCalendar();
-                }
-            });
+          document.getElementById('loading').style.display = 'block';
+
+          Papa.parse(CONFIG.CSV, {
+            download: true,
+            header: false,
+            complete: function(res) {
+              const data = res.data;
+              const hIdx = data.findIndex(r => r.join('').includes("DATAEVENTO"));
+
+              db = data.slice(hIdx + 6)
+                .filter(r => r[1] && r[1].trim() !== "")
+                .map(r => {
+                  while (r.length < 23) r.push("");
+                  return r;
+                });
+
+              render();
+              renderCalendar();
+            }
+          });
         }
+
 
         function render() {
             const tbody = document.getElementById('tbody');
@@ -1475,43 +1484,47 @@ function filterByDate(dateStr) {
                 // Define a classe da faixa superior esquerda
                 const badgeClass = isIntegrado ? 'bg-integrada' : 'bg-centralizada';
                 
-               const aioRaw = (r[20] || "").trim();
-const aioUpper = (aioRaw || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const aioRaw = (r[22] || "").trim();
+                const aioUpper = (aioRaw || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-// ✅ se a coluna Providências AIO estiver "CANCELADO"
-const isCancelado = (aioUpper === "CANCELADO");
+                // ✅ NOVO: detecta encaminhamento
+                
+                const isCancelado = aioUpper.includes("CANCELADO");
+                // se cancelado, pinta a linha
+                if (isCancelado) tr.classList.add("event-cancelado");
 
-// se cancelado, pinta a linha
-if (isCancelado) tr.classList.add("event-cancelado");
+                // Tag cancelado (vai aparecer junto dos badges)
+                const cancelHTML = isCancelado
+                  ? `<span class="badge-cancelado" title="Evento cancelado"><i class="fas fa-ban"></i> Evento Cancelado</span>`
+                  : "";
 
-// Tag cancelado (vai aparecer junto dos badges)
-const cancelHTML = isCancelado
-  ? `<span class="badge-cancelado" title="Evento cancelado"><i class="fas fa-ban"></i> Evento Cancelado</span>`
-  : "";
+                let aioHTML = "";
 
-let aioHTML = "";
+                if (aioRaw && !isCancelado) {
+                  // tenta pegar qualquer url de drive (com ou sem http)
+                  const m = aioRaw.match(/(https?:\/\/\S+|drive\.google\.com\/\S+)/i);
+                  const linkRaw = m ? m[0] : "";
+                  const link = normalizarLink(linkRaw);
 
-// ✅ Só monta o Plano AIO se NÃO estiver cancelado
-if (aioRaw && !isCancelado) {
-  const temLink = aioRaw.toLowerCase().includes("http");
-  const link = temLink ? aioRaw.match(/https?:\/\/\S+/)?.[0] : null;
-  const texto = aioRaw.replace(/https?:\/\/\S+/, "").trim();
+                  // remove o link do texto
+                  const texto = aioRaw.replace(m ? m[0] : "", "").trim();
 
-  aioHTML = `
-    <div class="badge-aio">
-      ${texto || "Plano AIO"}
-      ${link ? `
-        <a href="${encodeURI(link)}"
-           target="_blank"
-           rel="noopener noreferrer"
-           onclick="event.stopPropagation()"
-           style="background:#0284c7; color:white; padding:3px 8px; border-radius:6px; font-size:9px; font-weight:800; text-decoration:none;">
-          Abrir
-        </a>
-      ` : ""}
-    </div>
-  `;
-}
+                  aioHTML = `
+                    <div class="badge-aio">
+                      ${texto || "Planejamento AIO"}
+                      ${link ? `
+                        <a href="${encodeURI(link)}"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onclick="event.stopPropagation()"
+                          style="background:#0284c7; color:white; padding:3px 8px; border-radius:6px; font-size:9px; font-weight:800; text-decoration:none;">
+                          Abrir
+                        </a>
+                      ` : ""}
+                    </div>
+                  `;
+                }
+
 
 
 const envolvidosRaw = (r[12] || "").toUpperCase();
@@ -1520,7 +1533,9 @@ const linksDesdobramento = {
   CPM:  (r[16] || "").toLowerCase(),
   CPAMB:(r[17] || "").toLowerCase(),
   CPE:  (r[18] || "").toLowerCase(),
-  DAL:  (r[19] || "").toLowerCase()
+  DAL:  (r[19] || "").toLowerCase(),
+  CPI:  (r[20] || "").toLowerCase(),
+  DS:  (r[21] || "").toLowerCase()
 };
 
 
@@ -1655,6 +1670,12 @@ function corPorQuantidade(qtd) {
                 container.appendChild(monthDiv);
             });
         }
+        function normalizarLink(url) {
+          let s = (url || "").toString().trim().replace(/\s+/g, "");
+          if (!s) return "";
+          if (!/^https?:\/\//i.test(s)) s = "https://" + s;
+          return s;
+}
         function openModal(idx) {
             const ev = db[idx];
             let sigedRaw = (ev[15] || "").trim().replace(/\s+/g, '');
@@ -1679,21 +1700,25 @@ function corPorQuantidade(qtd) {
 
             const textoEnvolvidos = (ev[12] || "").toUpperCase();
             const links = {
-              CPM:  (ev[16] || "").trim(),
-              CPAMB:(ev[17] || "").trim(),
-              CPE:  (ev[18] || "").trim(),
-              DAL:  (ev[19] || "").trim()
+              CPM:   normalizarLink(ev[16]),
+              CPAMB: normalizarLink(ev[17]),
+              CPE:   normalizarLink(ev[18]),
+              DAL:   normalizarLink(ev[19]),
+              CPI:   normalizarLink(ev[20]),
+              DS:    normalizarLink(ev[21]),
             };
-
             const comandos = [
-              { id: 'CPM', nome: 'CPM - Comando de Policiamento Metropolitano' },
-              { id: 'CPAMB', nome: 'CPAMB - Comando de Policiamento Ambiental' },
-              { id: 'CPE', nome: 'CPE - Comando de Policiamento Especializado' },
-              { id: 'DAL', nome: 'DAL - Diretoria de Apoio Logístico' }
+              { id: 'CPM',  nome: 'CPM - Comando de Policiamento Metropolitano' },
+              { id: 'CPAMB',nome: 'CPAMB - Comando de Policiamento Ambiental' },
+              { id: 'CPE',  nome: 'CPE - Comando de Policiamento Especializado' },
+              { id: 'DAL',  nome: 'DAL - Diretoria de Apoio Logístico' },
+              { id: 'CPI',  nome: 'CPI - Comando de Policiamento do Interior)' },
+              { id: 'DS',  nome: 'DS- Diretoria de Saúde' }
             ];
             let botoesEnvolvidosHTML = '';
             comandos.forEach(cmd => {
-                if (textoEnvolvidos.includes(cmd.id) && links[cmd.id].toLowerCase().includes('http')) {
+                if (textoEnvolvidos.includes(cmd.id) && (links[cmd.id] || "").toLowerCase().includes("http")) {
+
                     botoesEnvolvidosHTML += `
                         <a href="${links[cmd.id]}" target="_blank" class="btn-link-drive" style="border-color: #4285f4; background: #f8fbff; width: 100%; justify-content: flex-start; margin-bottom: 8px;">
                             <i class="fab fa-google-drive" style="color: #4285f4;"></i> 
@@ -1961,12 +1986,12 @@ doc.text(
         const idx = tr.dataset.idx;
         const r = db[idx];
     console.log({
-  M: r[12],
-  N: r[13],
-  O: r[14],
-  P: r[15],
-  Q: r[16]
-});
+        M: r[12],
+        N: r[13],
+        O: r[14],
+        P: r[15],
+        Q: r[16]
+      });
      const endereco = r[6] || "";
     let zona = "";
 
