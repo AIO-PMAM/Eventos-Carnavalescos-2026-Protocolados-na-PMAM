@@ -2065,11 +2065,15 @@ if (linkOficio.toLowerCase().startsWith("http")) {
         const rowIndex = data.row.index;
         const idxOriginal = linhasVisiveis[rowIndex].dataset.idx;
         const tipoEvento = (db[idxOriginal][11] || "").toLowerCase();
-
+        const status = (db[idxOriginal][22] || "").toUpperCase();
         if (tipoEvento === 'integrada') {
             data.cell.styles.fontStyle = "bold";
         } else {
             data.cell.styles.fontStyle = "normal";
+        }
+        if (status === "CANCELADO") {
+            data.cell.styles.textColor = [180, 0, 0];
+            data.cell.styles.fontStyle = "bold";
         }
     }
 },
